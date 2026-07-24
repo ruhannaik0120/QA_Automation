@@ -252,6 +252,40 @@ def test_execute_query_executes_approved_write_statement(monkeypatch):
 # endregion Function: Test execute query executes approved write statement
 
 
+# region Function: Test execute query falls back from whitespace sql
+def test_execute_query_falls_back_from_whitespace_sql(monkeypatch):
+    """Use the normalized query when the sql compatibility argument is blank."""
+
+    _configure_settings(monkeypatch)
+    connector = FakeConnector()
+    service = QueryService(connector)
+
+    response = service.execute_query(sql="   ", query="  SELECT 1  ").to_dict()
+
+    assert response["success"] is True
+    assert response["query"] == "SELECT 1"
+    assert connector.calls == [("execute_query", "SELECT 1", "sales", 20, 25)]
+# endregion Function: Test execute query falls back from whitespace sql
+
+
+# region Function: Test execute query rejects blank statements
+def test_execute_query_rejects_blank_statements(monkeypatch):
+    """Preserve the empty-statement error for blank and whitespace-only inputs."""
+
+    _configure_settings(monkeypatch)
+    for sql, query in (("", ""), ("   ", "\t")):
+        connector = FakeConnector()
+        service = QueryService(connector)
+
+        response = service.execute_query(sql=sql, query=query).to_dict()
+
+        assert response["success"] is False
+        assert response["error"]["code"] == ErrorCode.QUERY_BLOCKED
+        assert response["error"]["message"] == "Empty query is not allowed."
+        assert connector.calls == []
+# endregion Function: Test execute query rejects blank statements
+
+
 # region Function: Test execute query rejects conflicting sql arguments
 def test_execute_query_rejects_conflicting_sql_arguments(monkeypatch):
     """Verify execute query rejects conflicting sql arguments."""
@@ -265,6 +299,22 @@ def test_execute_query_rejects_conflicting_sql_arguments(monkeypatch):
     assert response["error"]["code"] == ErrorCode.CONFIG_INVALID
     assert connector.calls == []
 # endregion Function: Test execute query rejects conflicting sql arguments
+
+
+# region Function: Test execute query accepts identical normalized statements
+def test_execute_query_accepts_identical_normalized_statements(monkeypatch):
+    """Execute one normalized statement when both compatibility inputs agree."""
+
+    _configure_settings(monkeypatch)
+    connector = FakeConnector()
+    service = QueryService(connector)
+
+    response = service.execute_query(sql="  SELECT 1  ", query="\nSELECT 1\t").to_dict()
+
+    assert response["success"] is True
+    assert response["query"] == "SELECT 1"
+    assert connector.calls == [("execute_query", "SELECT 1", "sales", 20, 25)]
+# endregion Function: Test execute query accepts identical normalized statements
 
 
 # region Function: Test execute query rejects database outside active profile

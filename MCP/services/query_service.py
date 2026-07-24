@@ -742,12 +742,13 @@ class QueryService:
         """Validate policy, execute one statement, and normalize its result."""
 
         request_id, request_token, environment_token, start_time, requested_environment = self._begin_request(_tool_name)
-        statement = sql or query
+        statement = ""
         try:
             normalized_sql = (sql or "").strip()
             normalized_query = (query or "").strip()
             if normalized_sql and normalized_query and normalized_sql != normalized_query:
                 raise ConfigError("Provide either sql or query, not two different statements.")
+            statement = normalized_sql or normalized_query
             if max_rows is not None and max_rows <= 0:
                 raise ConfigError("max_rows must be greater than zero.")
             # Per-request limits may reduce, but never raise, the configured cap.
