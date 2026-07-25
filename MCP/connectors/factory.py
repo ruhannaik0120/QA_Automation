@@ -1,4 +1,9 @@
-"""Factory for creating database connectors based on configuration."""
+"""Resolve configured database types to lazily imported connector classes.
+
+The registry is the only shared location that maps profile names to backend
+modules. Lazy loading keeps optional database drivers isolated and ensures the
+service layer depends only on the neutral connector contract.
+"""
 
 # region Imports and module setup
 from __future__ import annotations
@@ -19,7 +24,11 @@ SUPPORTED_CONNECTORS: dict[str, str] = {
 
 # region Class: ConnectorFactory
 class ConnectorFactory:
-    """Instantiate the appropriate connector based on configuration."""
+    """Create registered connectors without leaking driver concerns upstream.
+
+    The factory has no connection lifecycle of its own; callers own the
+    returned connector and must close or replace it during runtime switching.
+    """
 
     # region Function: Supported connectors
     @staticmethod

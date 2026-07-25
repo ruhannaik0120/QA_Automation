@@ -1,4 +1,8 @@
-"""Regression tests for the external E2E run and reporting helpers."""
+"""Verify ticket initialization and report export helpers as one outer workflow.
+
+Temporary ticket roots and generated evidence prove idempotent setup, redaction,
+path safety, status computation, and supported report output without databases.
+"""
 
 # region Imports and module setup
 from __future__ import annotations

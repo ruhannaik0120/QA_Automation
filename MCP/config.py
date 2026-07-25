@@ -1,4 +1,9 @@
-"""Generic runtime configuration for the MCP execution framework."""
+"""Load, validate, and redact database MCP runtime configuration.
+
+This module is the single boundary between environment-backed profile values
+and the connector layer. It normalizes shared settings, applies backend-specific
+requirements, and exposes only redacted diagnostics to agent-facing tools.
+"""
 
 # region Imports and module setup
 from __future__ import annotations

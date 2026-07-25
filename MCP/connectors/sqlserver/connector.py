@@ -1,4 +1,9 @@
-"""SQL Server implementation of the database connector interface."""
+"""Translate the neutral connector contract into SQL Server ODBC operations.
+
+The connector assembles escaped profile-controlled connection strings, chooses
+trusted or explicit authentication, applies SQL Server row-limit syntax, and
+normalizes metadata and results without owning MCP approval policy.
+"""
 
 # region Imports and module setup
 from __future__ import annotations
@@ -15,7 +20,11 @@ from logger import logger
 
 # region Class: SQLServerConnector
 class SQLServerConnector(DatabaseConnector):
-    """Connector implementation for SQL Server via pyodbc."""
+    """Own SQL Server connections and normalized operations through pyodbc.
+
+    ODBC values are escaped before connection-string assembly, optional driver
+    loading is isolated here, and driver exceptions are normalized upstream.
+    """
 
     # region Function: Odbc value
     @staticmethod

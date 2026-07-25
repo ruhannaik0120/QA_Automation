@@ -1,4 +1,9 @@
-"""Create the local artifact structure for a ticket-scoped QA run."""
+"""Initialize the stable local workspace for one Jira-scoped QA run.
+
+The initializer creates source and generated-artifact directories, starter
+documents, and a shared root log without replacing existing evidence. It owns
+filesystem setup only; Jira retrieval and QA decisions belong to workflows.
+"""
 
 # region Imports and module setup
 from __future__ import annotations
@@ -27,15 +32,23 @@ _WINDOWS_RESERVED_NAMES = {
 
 # region Function: Sanitize ticket key
 def sanitize_ticket_key(ticket_key: str) -> str:
-    """Return a deterministic folder name without merging unsafe ticket keys."""
+    """Return a deterministic, Windows-safe directory ID for a Jira key.
+
+    Unsafe characters are replaced and changed values receive a short digest so
+    distinct original keys do not silently collapse into the same run folder.
+    """
 
     original = ticket_key.strip()
     normalized = original.upper()
+    # Keep familiar ticket punctuation while removing separators and characters
+    # that could escape or destabilize the ticket workspace.
     sanitized = re.sub(r"[^A-Z0-9._-]+", "_", normalized).strip("._-")
     if not sanitized:
         raise ValueError("The Jira ticket key must contain letters or numbers.")
     changed = sanitized != normalized or len(sanitized) > 100
     if changed:
+        # A digest preserves deterministic uniqueness after replacement or
+        # truncation without exposing additional ticket content.
         digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:8]
         sanitized = sanitized[:90].rstrip("._-")
         sanitized = f"{sanitized}-{digest}"
@@ -49,6 +62,8 @@ def sanitize_ticket_key(ticket_key: str) -> str:
 def _safe_run_folder(ticket_runs_root: Path, ticket_id: str) -> Path:
     """Resolve a run path and reject links outside the ticket-runs root."""
 
+    # Resolve before creating anything so a crafted identifier or linked path
+    # cannot redirect ticket artifacts outside the configured root.
     root = ticket_runs_root.resolve()
     run_folder = root / ticket_id
     resolved_run_folder = run_folder.resolve(strict=False)
@@ -60,7 +75,14 @@ def _safe_run_folder(ticket_runs_root: Path, ticket_id: str) -> Path:
 
 # region Function: Initial files
 def _initial_files(ticket_id: str) -> dict[Path, str]:
-    """Build the stable starter artifacts for a new ticket workspace."""
+    """Return relative starter paths and neutral content for a new run.
+
+    These are placeholders for later workflow stages, not ticket conclusions.
+    Callers create each path exclusively so repeat initialization is idempotent.
+    """
+
+    # The normalized result skeleton lets execution and reporting code share a
+    # stable schema before any approved database check has run.
     empty_result = {
         "schema_version": "1.0",
         "ticket_id": ticket_id,
@@ -114,12 +136,19 @@ def initialize_run(
     ticket_runs_root: Path | None = None,
     logs_root: Path | None = None,
 ) -> tuple[Path, list[Path]]:
-    """Create missing run artifacts without changing files that already exist."""
+    """Create missing ticket directories, starter artifacts, and the root log.
+
+    ``ticket_key`` determines the safe run ID; optional roots support isolated
+    tests. The returned tuple contains the run folder and only paths created by
+    this call. Existing artifacts and log history are never overwritten.
+    """
 
     ticket_id = sanitize_ticket_key(ticket_key)
     created_at = datetime.now(timezone.utc).isoformat()
     run_folder = _safe_run_folder(ticket_runs_root or TICKET_RUNS_ROOT, ticket_id)
     resolved_logs_root = (logs_root or LOGS_ROOT).resolve()
+    # Directory creation is repeatable, while individual artifacts below use
+    # exclusive file creation to preserve prior workflow state.
     run_folder.mkdir(parents=True, exist_ok=True)
     (run_folder / "downloads").mkdir(exist_ok=True)
     (run_folder / "generated").mkdir(exist_ok=True)
@@ -130,12 +159,16 @@ def initialize_run(
         path = run_folder / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
+            # ``x`` mode is the idempotency boundary: an existing approval,
+            # context, plan, SQL file, or result must survive a resumed run.
             with path.open("x", encoding="utf-8", newline="\n") as file:
                 file.write(content)
         except FileExistsError:
             continue
         created.append(path)
 
+    # Logs are shared at repository level by contract and are initialized once
+    # so subsequent workflow activity can append without losing history.
     log_path = resolved_logs_root / f"{ticket_id}.log"
     try:
         with log_path.open("x", encoding="utf-8", newline="\n") as file:

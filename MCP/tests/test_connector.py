@@ -1,4 +1,8 @@
-"""Connector tests for the packaged SQL Server connector."""
+"""Exercise SQL Server connector lifecycle and ODBC result normalization.
+
+In-memory driver doubles verify connection ownership, row shaping, commits, and
+cleanup without requiring an installed SQL Server or real credentials.
+"""
 
 # region Imports and module setup
 from config import Config
@@ -13,7 +17,7 @@ class FakeCursor:
     """Return deterministic metadata rows for connector assertions."""
     # region Function: Init
     def __init__(self):
-        """Initialize this object."""
+        """Initialize one cursor with server metadata and query history."""
         self.description = [("server_name",), ("version",), ("logged_in_user",), ("utc_time",)]
         self._rows = [("server", "version", "user", "time")]
         self.executed = []
@@ -21,19 +25,19 @@ class FakeCursor:
 
     # region Function: Execute
     def execute(self, sql, *params):
-        """Handle execute."""
+        """Record the statement and bound parameters without executing SQL."""
         self.executed.append((sql, params))
     # endregion Function: Execute
 
     # region Function: Fetchone
     def fetchone(self):
-        """Handle fetchone."""
+        """Return the deterministic server-information row."""
         return self._rows[0]
     # endregion Function: Fetchone
 
     # region Function: Fetchall
     def fetchall(self):
-        """Handle fetchall."""
+        """Return all deterministic rows for result-shaping assertions."""
         return self._rows
     # endregion Function: Fetchall
 # endregion Class: FakeCursor
@@ -44,7 +48,7 @@ class FakeConnection:
     """Track cursor access and closure for lifecycle assertions."""
     # region Function: Init
     def __init__(self):
-        """Initialize this object."""
+        """Create an open connection with one reusable fake cursor."""
         self.cursor_obj = FakeCursor()
         self.closed = False
         self.autocommit = False
@@ -53,13 +57,13 @@ class FakeConnection:
 
     # region Function: Cursor
     def cursor(self):
-        """Handle cursor."""
+        """Return the cursor owned by this fake connection."""
         return self.cursor_obj
     # endregion Function: Cursor
 
     # region Function: Close
     def close(self):
-        """Handle close."""
+        """Record that connector cleanup closed the connection."""
         self.closed = True
     # endregion Function: Close
 # endregion Class: FakeConnection
@@ -73,14 +77,14 @@ class FakeDriver:
 
     # region Function: Init
     def __init__(self, connection=None):
-        """Initialize this object."""
+        """Store the connection to return and initialize argument capture."""
         self.connection = connection or FakeConnection()
         self.captured = {}
     # endregion Function: Init
 
     # region Function: Connect
     def connect(self, conn_str, timeout=30):
-        """Handle connect."""
+        """Capture ODBC connection inputs and return the configured double."""
         self.captured = {"conn_str": conn_str, "timeout": timeout}
         return self.connection
     # endregion Function: Connect
@@ -90,7 +94,7 @@ class FakeDriver:
 # Establish one known profile so tests isolate only connector behavior.
 # region Function: Configure generic settings
 def _configure_generic_settings(monkeypatch):
-    """Support configure generic settings."""
+    """Load a stable local SQL Server profile for connector-only tests."""
     monkeypatch.setenv("DB_TYPE", "sqlserver")
     monkeypatch.setenv("DB_HOST", "localhost")
     monkeypatch.setenv("DB_DATABASE", "devdb")

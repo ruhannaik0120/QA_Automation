@@ -1,4 +1,8 @@
-"""Architecture rules that keep database code behind connector boundaries."""
+"""Protect the architectural boundary between drivers, connectors, and tools.
+
+These source-level tests prevent database imports or driver calls from drifting
+into services and MCP wrappers, where they would bypass shared policy.
+"""
 
 # region Imports and module setup
 import ast

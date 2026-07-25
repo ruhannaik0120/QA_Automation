@@ -1,4 +1,9 @@
-"""Snowflake implementation of the database connector interface."""
+"""Translate the neutral connector contract into Snowflake operations.
+
+The connector maps profile settings to Snowflake's driver, applies warehouse
+metadata and row-limit syntax, and explicitly commits successful writes so
+behavior remains stable across profile-level autocommit settings.
+"""
 
 # region Imports and module setup
 from __future__ import annotations
@@ -14,7 +19,11 @@ from connectors.base import DatabaseConnector, unique_column_names
 
 # region Class: SnowflakeConnector
 class SnowflakeConnector(DatabaseConnector):
-    """Connector implementation for Snowflake via snowflake-connector-python."""
+    """Own Snowflake connections and result normalization through its driver.
+
+    The comparatively heavy optional driver is loaded lazily, while validation,
+    human approval, and error redaction remain outside the connector boundary.
+    """
 
     # region Function: Driver
     def _driver(self):

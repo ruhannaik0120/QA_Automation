@@ -1,4 +1,9 @@
-"""Export saved ticket-run execution results to HTML or Excel."""
+"""Transform saved QA execution evidence into safe HTML or Excel reports.
+
+The exporter reads an existing ticket result, normalizes supported MCP shapes,
+redacts credential-like values, recomputes trustworthy status totals, and
+atomically writes final reports under ``output/``. It never executes SQL.
+"""
 
 # region Imports and module setup
 from __future__ import annotations
@@ -42,6 +47,8 @@ _QA_FAIL_STATUSES = {"failed", "fail"}
 # endregion Imports and module setup
 
 
+# Ticket identity and path containment are validated before reading evidence or
+# choosing a final output destination.
 # region Function: Sanitize ticket key
 def sanitize_ticket_key(ticket_key: str) -> str:
     """Return the same safe folder name used by init_ticket_run.py."""
@@ -74,6 +81,8 @@ def _safe_child(parent: Path, child_name: str) -> Path:
 # endregion Function: Safe child
 
 
+# Redaction is recursive because connector diagnostics and errors can contain
+# credentials at arbitrary nesting levels or embedded inside text.
 # region Function: Redact sensitive
 def redact_sensitive(value: Any, key: str = "") -> Any:
     """Redact credential-like fields before placing saved data in a report."""
@@ -106,6 +115,8 @@ def redact_sensitive(value: Any, key: str = "") -> Any:
 # endregion Function: Redact sensitive
 
 
+# Input normalization accepts historical result envelopes but produces one
+# redacted dictionary shape for all downstream report builders.
 # region Function: Load execution result
 def load_execution_result(path: Path) -> dict[str, Any]:
     """Load, validate, normalize, and redact saved execution evidence."""
@@ -241,6 +252,8 @@ def actual_result(item: dict[str, Any]) -> str:
 # endregion Function: Actual result
 
 
+# Error and summary helpers recompute report status from normalized evidence;
+# stored summary fields are never trusted as the sole source of final status.
 # region Function: Collect errors
 def collect_errors(payload: dict[str, Any], results: list[dict[str, Any]]) -> list[dict[str, str]]:
     """Collect and normalize run-level and query-level errors."""
@@ -284,6 +297,8 @@ def build_summary(payload: dict[str, Any], results: list[dict[str, Any]], errors
     """Recompute trustworthy execution and QA status totals."""
     summary = payload.get("summary")
     safe_summary = dict(summary) if isinstance(summary, dict) else {}
+    # Derive counts from individual outcomes so stale or hand-edited summary
+    # totals cannot make an incomplete run appear successful.
     statuses = [query_status(item).strip().lower() for item in results]
     passed = sum(status in _QA_PASS_STATUSES for status in statuses)
     failed = sum(status in _QA_FAIL_STATUSES for status in statuses)
@@ -356,6 +371,8 @@ def _excel_cell(value: Any) -> Any:
 # endregion Function: Excel cell
 
 
+# Report writers escape or neutralize untrusted values and use a same-directory
+# temporary file so readers never observe a partially written final report.
 # region Function: Export html
 def export_html(ticket_id: str, payload: dict[str, Any], output_path: Path) -> None:
     """Write a redacted and HTML-escaped ticket report atomically."""
@@ -364,6 +381,8 @@ def export_html(ticket_id: str, payload: dict[str, Any], output_path: Path) -> N
     errors = collect_errors(payload, results)
     summary = build_summary(payload, results, errors)
 
+    # Escape every value at the HTML boundary, including normalized error text
+    # and result previews that originated from database responses.
     summary_rows = "".join(
         f"<tr><th>{html.escape(str(key).replace('_', ' ').title())}</th>"
         f"<td>{html.escape(str(value))}</td></tr>"
@@ -422,6 +441,8 @@ def export_html(ticket_id: str, payload: dict[str, Any], output_path: Path) -> N
 </body>
 </html>
 """
+    # Atomic replacement keeps an older valid report intact if rendering or
+    # writing fails before the new document is complete.
     temporary_path = output_path.with_name(f".{output_path.stem}.tmp{output_path.suffix}")
     try:
         temporary_path.write_text(document, encoding="utf-8")
@@ -460,6 +481,8 @@ def export_excel(
     errors = collect_errors(payload, results)
     summary = build_summary(payload, results, errors)
 
+    # Cell conversion strips illegal control characters and neutralizes leading
+    # formula characters before any untrusted value reaches the workbook.
     workbook = workbook_class()
     summary_sheet = workbook.active
     summary_sheet.title = "Summary"
@@ -539,6 +562,7 @@ def export_excel(
     for column, width in {"A": 6, "B": 28, "C": 22, "D": 45, "E": 70}.items():
         errors_sheet.column_dimensions[column].width = width
 
+    # Save beside the final workbook and replace only after openpyxl completes.
     temporary_path = output_path.with_name(f".{output_path.stem}.tmp{output_path.suffix}")
     try:
         workbook.save(temporary_path)
@@ -548,6 +572,8 @@ def export_excel(
 # endregion Function: Export excel
 
 
+# The CLI resolves all paths from this module's repository location, validates
+# ticket ownership, and dispatches only to the supported report writers.
 # region Function: Main
 def main() -> int:
     """Run the result-export command-line interface."""

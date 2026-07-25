@@ -1,4 +1,8 @@
-"""Verify connector registration, selection, and unsupported-type handling."""
+"""Verify connector registry selection and lazy backend construction.
+
+The tests ensure supported names remain deterministic and unsupported profile
+values fail before optional driver modules are used.
+"""
 
 # region Imports and module setup
 from connectors.base import DatabaseConnector

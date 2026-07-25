@@ -1,4 +1,8 @@
-"""Verify that MCP execution does not create persistent result artifacts."""
+"""Prove database MCP execution remains stateless with respect to run evidence.
+
+Result artifacts belong to the outer QA workflow, so the test executes through
+a fake connector and verifies the MCP subsystem does not write report files.
+"""
 
 # region Imports and module setup
 from config import Config
@@ -12,7 +16,7 @@ class _Connector:
 
     # region Function: Execute query
     def execute_query(self, query, *, database=None, timeout_seconds=None, max_rows=None):
-        """Handle execute query."""
+        """Return a result in memory so filesystem side effects remain observable."""
         return {"columns": ["value"], "rows": [{"value": 1}], "rows_affected": 1}
     # endregion Function: Execute query
 # endregion Class: Connector

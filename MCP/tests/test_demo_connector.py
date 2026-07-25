@@ -1,4 +1,8 @@
-"""Tests for the offline demo connector."""
+"""Verify deterministic metadata and query results from the offline connector.
+
+These tests preserve a credential-free demonstration path and ensure the demo
+backend follows the same normalized contract as real connectors.
+"""
 
 # region Imports and module setup
 from connectors.demo.connector import DemoConnector

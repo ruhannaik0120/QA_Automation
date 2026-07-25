@@ -1,4 +1,9 @@
-"""MySQL implementation of the database connector interface."""
+"""Translate the neutral connector contract into MySQL driver operations.
+
+The connector builds profile-controlled connection arguments, applies MySQL
+row-limit syntax, normalizes metadata and results, and commits successful
+data-changing statements. Approval and SQL policy remain service concerns.
+"""
 
 # region Imports and module setup
 from __future__ import annotations
@@ -14,7 +19,11 @@ from connectors.base import DatabaseConnector, unique_column_names
 
 # region Class: MySQLConnector
 class MySQLConnector(DatabaseConnector):
-    """Connector implementation for MySQL via mysql-connector-python."""
+    """Own MySQL connections and result normalization via mysql-connector-python.
+
+    Connections are short-lived context-managed resources; optional driver
+    imports stay inside this class so other backends can run without MySQL.
+    """
 
     # region Function: Driver
     def _driver(self):

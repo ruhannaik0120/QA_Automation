@@ -1,4 +1,9 @@
-"""Database connector abstraction used by the MCP runtime."""
+"""Define the backend-neutral connector contract used by MCP services.
+
+Concrete connectors translate this interface into vendor-driver operations.
+The contract keeps connection ownership, result shaping, and cleanup consistent
+while SQL authorization and response envelopes remain in the service layer.
+"""
 
 # region Imports and module setup
 from __future__ import annotations
@@ -40,7 +45,11 @@ class DatabaseConnector(ABC):
     # region Function: Connect
     @abstractmethod
     def connect(self, database: str | None = None, timeout_seconds: int | None = None) -> Any:
-        """Open a connection to the target database."""
+        """Open and return a driver connection for the requested database.
+
+        Implementations apply the active profile and optional timeout. Driver
+        exceptions are allowed to propagate for service-layer normalization.
+        """
     # endregion Function: Connect
 
     # region Function: Test connection
@@ -69,7 +78,11 @@ class DatabaseConnector(ABC):
         schema: str | None = None,
         timeout_seconds: int | None = None,
     ) -> dict[str, Any]:
-        """Return the tables available in a database."""
+        """Return normalized table metadata for the database and optional schema.
+
+        The result must remain serializable and must not expose connection
+        credentials or backend-specific connection objects.
+        """
     # endregion Function: List tables
 
     # region Function: Describe table
@@ -81,7 +94,11 @@ class DatabaseConnector(ABC):
         schema: str | None = None,
         timeout_seconds: int | None = None,
     ) -> dict[str, Any]:
-        """Return column metadata for a table."""
+        """Return normalized column metadata for one fully identified table.
+
+        Implementations may apply backend naming rules, but must leave missing
+        or invalid object handling to explicit errors rather than guessing.
+        """
     # endregion Function: Describe table
 
     # region Function: Execute query

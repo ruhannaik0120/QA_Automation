@@ -1,4 +1,8 @@
-"""MCP wrapper tests to ensure the tool surface remains stable."""
+"""Verify MCP wrappers preserve argument forwarding and JSON response contracts.
+
+Service doubles keep the suite at the transport boundary, proving wrappers add
+no connector access, SQL behavior, or credential handling of their own.
+"""
 
 # region Imports and module setup
 import tools.connection as connection_tools
@@ -13,13 +17,13 @@ class FakeResponse:
 
     # region Function: Init
     def __init__(self, payload):
-        """Initialize this object."""
+        """Store the service payload that the wrapper must serialize."""
         self._payload = payload
     # endregion Function: Init
 
     # region Function: To dict
     def to_dict(self):
-        """Handle to dict."""
+        """Return the payload through the production response interface."""
         return self._payload
     # endregion Function: To dict
 # endregion Class: FakeResponse
@@ -31,13 +35,13 @@ class FakeService:
 
     # region Function: Init
     def __init__(self):
-        """Initialize this object."""
+        """Initialize ordered capture of all wrapper-to-service calls."""
         self.calls = []
     # endregion Function: Init
 
     # region Function: Test connection
     def test_connection(self, *args, **kwargs):
-        """Verify connection."""
+        """Capture connection arguments and return a valid tool response."""
         self.calls.append(("test_connection", args, kwargs))
         return FakeResponse(
             {
@@ -53,7 +57,7 @@ class FakeService:
 
     # region Function: Health
     def health(self, *args, **kwargs):
-        """Handle health."""
+        """Capture health arguments and return deterministic status data."""
         self.calls.append(("health", args, kwargs))
         return FakeResponse(
             {
@@ -70,7 +74,7 @@ class FakeService:
 
     # region Function: List databases
     def list_databases(self, *args, **kwargs):
-        """Handle list databases."""
+        """Capture database-list arguments and return an empty inventory."""
         self.calls.append(("list_databases", args, kwargs))
         return FakeResponse(
             {
@@ -88,28 +92,28 @@ class FakeService:
 
     # region Function: List tables
     def list_tables(self, *args, **kwargs):
-        """Handle list tables."""
+        """Capture table-list arguments and return an empty inventory."""
         self.calls.append(("list_tables", args, kwargs))
         return FakeResponse({"success": True, "tool": "list_tables", "environment": kwargs.get("environment", "DEV"), "request_id": "abc", "timestamp": "2026-06-28T00:00:00Z", "execution_time_ms": 1, "count": 0, "tables": []})
     # endregion Function: List tables
 
     # region Function: Describe table
     def describe_table(self, *args, **kwargs):
-        """Handle describe table."""
+        """Capture table-description arguments and return no columns."""
         self.calls.append(("describe_table", args, kwargs))
         return FakeResponse({"success": True, "tool": "describe_table", "environment": kwargs.get("environment", "DEV"), "request_id": "abc", "timestamp": "2026-06-28T00:00:00Z", "execution_time_ms": 1, "column_count": 0, "columns": []})
     # endregion Function: Describe table
 
     # region Function: Execute select query
     def execute_select_query(self, *args, **kwargs):
-        """Handle execute select query."""
+        """Capture deprecated alias arguments and return an empty result."""
         self.calls.append(("execute_select_query", args, kwargs))
         return FakeResponse({"success": True, "tool": "execute_select_query", "environment": kwargs.get("environment", "DEV"), "request_id": "abc", "timestamp": "2026-06-28T00:00:00Z", "execution_time_ms": 2, "rows": []})
     # endregion Function: Execute select query
 
     # region Function: Execute query
     def execute_query(self, *args, **kwargs):
-        """Handle execute query."""
+        """Capture generic execution arguments and return an empty result."""
         self.calls.append(("execute_query", args, kwargs))
         return FakeResponse({"success": True, "tool": "execute_query", "environment": kwargs.get("environment", "DEV"), "request_id": "abc", "timestamp": "2026-06-28T00:00:00Z", "execution_time_ms": 2, "rows": []})
     # endregion Function: Execute query

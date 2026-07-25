@@ -1,4 +1,8 @@
-"""Cross-dialect tests for the framework's hard row ceiling."""
+"""Verify every SQL dialect enforces the framework-wide result-row ceiling.
+
+The suite inspects rewritten statements and bounded fetch behavior through
+cursor doubles; no statement reaches a live database.
+"""
 
 # region Imports and module setup
 from connectors.mysql.connector import MySQLConnector
@@ -62,13 +66,13 @@ class _Cursor:
 
     # region Function: Init
     def __init__(self):
-        """Initialize this object."""
+        """Initialize fetch-size capture for the row-cap assertion."""
         self.fetchmany_size = None
     # endregion Function: Init
 
     # region Function: Fetchmany
     def fetchmany(self, size):
-        """Handle fetchmany."""
+        """Record the bounded fetch request and return exactly that many rows."""
         self.fetchmany_size = size
         return [(number,) for number in range(size)]
     # endregion Function: Fetchmany

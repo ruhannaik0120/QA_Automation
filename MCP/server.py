@@ -122,7 +122,11 @@ def tool_health(environment: str = "", timeout_seconds: int | None = None) -> st
 # region Function: Tool list databases
 @mcp.tool()
 def tool_list_databases(environment: str = "", timeout_seconds: int | None = None) -> str:
-    """List databases for the selected connector."""
+    """Serialize database discovery from the selected profile as MCP JSON.
+
+    The service layer enforces environment and timeout rules; this registered
+    wrapper performs no direct connector or credential access.
+    """
 
     return json.dumps(list_databases(environment, timeout_seconds), indent=2, default=str)
 # endregion Function: Tool list databases
@@ -151,7 +155,11 @@ def tool_describe_table(
     environment: str = "",
     timeout_seconds: int | None = None,
 ) -> str:
-    """Return table metadata for a single table."""
+    """Serialize normalized metadata for one explicitly named table.
+
+    Empty or invalid object identifiers are handled by the service and
+    connector layers rather than inferred by the transport wrapper.
+    """
 
     return json.dumps(describe_table(database, table, schema, environment, timeout_seconds), indent=2, default=str)
 # endregion Function: Tool describe table

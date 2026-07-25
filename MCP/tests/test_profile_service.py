@@ -1,4 +1,8 @@
-"""Tests for safe runtime connection-profile switching."""
+"""Verify profile discovery and atomic runtime switching without real secrets.
+
+Temporary environment files and connector doubles prove confirmation, rollback,
+redaction, and cache reset behavior under the shared runtime lock.
+"""
 
 # region Imports and module setup
 import json
@@ -193,7 +197,7 @@ def test_profile_switch_waits_for_an_active_runtime_operation(profiles):
 
     # region Function: Switch profile
     def switch_profile():
-        """Handle switch profile."""
+        """Attempt a profile switch from a worker while the lock is held."""
         started.set()
         profile_service.switch_connection_profile("demo-two", confirm=True)
         finished.set()

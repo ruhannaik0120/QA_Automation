@@ -1,4 +1,10 @@
-"""Runtime connection-profile discovery and atomic switching."""
+"""Discover and atomically switch environment-backed database profiles.
+
+Profile operations run under the shared runtime lock so a connector, global
+configuration snapshot, and cached query service change as one unit. Responses
+contain readiness and redacted diagnostics only; credential values never leave
+the process environment.
+"""
 
 # region Imports and module setup
 from __future__ import annotations

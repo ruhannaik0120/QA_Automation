@@ -1,4 +1,9 @@
-"""PostgreSQL implementation of the database connector interface."""
+"""Translate the neutral connector contract into PostgreSQL operations.
+
+The connector owns psycopg argument mapping, PostgreSQL metadata queries,
+dialect-specific row limits, transaction commits, and normalized result
+payloads. It receives validated profile data rather than reading secrets.
+"""
 
 # region Imports and module setup
 from __future__ import annotations
@@ -14,7 +19,11 @@ from connectors.base import DatabaseConnector, unique_column_names
 
 # region Class: PostgreSQLConnector
 class PostgreSQLConnector(DatabaseConnector):
-    """Connector implementation for PostgreSQL via psycopg."""
+    """Own PostgreSQL connections and normalized operations through psycopg.
+
+    Driver failures propagate to the service layer for secret-safe response
+    normalization, and every context-managed connection is closed after use.
+    """
 
     # region Function: Driver
     def _driver(self):

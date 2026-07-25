@@ -1,4 +1,10 @@
-"""Business and orchestration logic for MCP tools."""
+"""Orchestrate MCP requests between policy, connectors, logs, and responses.
+
+``QueryService`` owns request correlation, profile-bound target validation,
+SQL guard invocation, connector delegation, error normalization, and standard
+response envelopes. It never grants human approval and never bypasses connector
+or database permissions.
+"""
 
 # region Imports and module setup
 from __future__ import annotations
@@ -20,7 +26,12 @@ from validation.sql_guard import validate_query
 
 # region Class: QueryService
 class QueryService:
-    """Service layer that orchestrates tool requests and formats responses."""
+    """Coordinate one runtime connector across the complete MCP tool surface.
+
+    Each public method acquires request context, delegates backend work through
+    the connector contract, and returns a ``ToolResponse`` with safe errors and
+    timing metadata. The instance is cached until profile switching resets it.
+    """
 
     # region Function: Init
     def __init__(self, sql_connector=None):
@@ -739,13 +750,24 @@ class QueryService:
         max_rows: int | None = None,
         _tool_name: str = "execute_query",
     ) -> ToolResponse:
-        """Validate policy, execute one statement, and normalize its result."""
+        """Validate and execute one profile-bound SQL statement.
+
+        ``sql`` is the primary MCP argument and ``query`` is retained for older
+        clients. Both are normalized before selection, conflicting non-empty
+        values are rejected, and the chosen statement passes through the SQL
+        guard before connector delegation. The returned ``ToolResponse`` never
+        raises connector errors directly to the MCP caller.
+        """
 
         request_id, request_token, environment_token, start_time, requested_environment = self._begin_request(_tool_name)
         statement = ""
         try:
+            # Normalize both compatibility fields before choosing one so a
+            # whitespace-only ``sql`` value cannot suppress a valid ``query``.
             normalized_sql = (sql or "").strip()
             normalized_query = (query or "").strip()
+            # Two distinct commands are ambiguous and must never be collapsed
+            # into an implicit execution choice.
             if normalized_sql and normalized_query and normalized_sql != normalized_query:
                 raise ConfigError("Provide either sql or query, not two different statements.")
             statement = normalized_sql or normalized_query

@@ -68,6 +68,15 @@ This workflow is not applicable when the client, project type, or workflow varia
 
 ## Steps
 
+The checklist below is the ticket-independent control path for this client and
+project type. It initializes a resumable workspace, classifies authoritative
+inputs by role, acquires only declared sources, and synthesizes context before
+the first approval gate. Planning and any applicable SQL preparation occur
+only after that context is approved; a second approval gate controls database
+execution, and evidence and reports are produced from recorded results rather
+than assumed outcomes. Each ticket records its own status and artifacts under
+the paths named by the applicable checklist item.
+
 1. **Checklist item:** Initialize the ticket workspace
    - **Checklist item ID:** `initialize-ticket-workspace`
    - **Objective:** Create the stable ticket-scoped input and generated-artifact structure before retrieving or producing ticket content.

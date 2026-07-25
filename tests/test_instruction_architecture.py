@@ -1,4 +1,8 @@
-"""Protect the finalized workflow-routing and Agent Skill repository contract."""
+"""Protect workflow routing, Agent Skill resolution, and instruction ownership.
+
+These text-level tests keep permanent rules, workflow metadata, filenames, and
+ticket-folder responsibilities synchronized without executing a workflow.
+"""
 
 # region Imports and module setup
 from __future__ import annotations

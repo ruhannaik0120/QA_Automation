@@ -1,4 +1,8 @@
-"""SQL validation tests for the MCP execution framework."""
+"""Exercise conservative SQL structure checks across supported dialects.
+
+The cases cover comments, statement counts, row-limit forms, and write syntax;
+validation is purely local and never executes the supplied SQL.
+"""
 
 # region Imports and module setup
 from validation.sql_guard import validate_query

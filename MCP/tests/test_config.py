@@ -1,4 +1,8 @@
-"""Configuration tests for the MCP server."""
+"""Verify configuration loading, validation, and credential-safe diagnostics.
+
+The suite mutates process environment only through pytest fixtures and confirms
+invalid profiles fail before any connector or live database is contacted.
+"""
 
 # region Imports and module setup
 import os

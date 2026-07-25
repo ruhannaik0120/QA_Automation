@@ -1,4 +1,8 @@
-"""Configuration diagnostics MCP tool."""
+"""Expose redacted runtime diagnostics through the thin MCP tool layer.
+
+The wrapper acquires the runtime lock and delegates all data selection and
+secret removal to ``QueryService``; it contains no configuration parsing.
+"""
 
 # region Imports and module setup
 from services import query_service

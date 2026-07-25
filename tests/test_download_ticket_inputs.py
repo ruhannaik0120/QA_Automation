@@ -1,4 +1,9 @@
-"""Offline regression tests for secure ticket-input downloads and extraction."""
+"""Verify secure ticket-input acquisition, archive handling, and rollback.
+
+In-memory HTTP responses and temporary workspaces exercise real downloader
+logic without live URLs. The suite covers credential boundaries, path safety,
+ZIP limits, atomic manifests, transactional extraction, and CLI failures.
+"""
 
 # region Imports and module setup
 from __future__ import annotations

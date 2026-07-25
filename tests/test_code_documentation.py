@@ -1,4 +1,8 @@
-"""Enforce the repository's collapsible code-documentation convention."""
+"""Enforce structural documentation requirements across project Python code.
+
+The suite checks module and definition docstrings plus balanced collapsible
+regions. It validates source structure only and imports no application module.
+"""
 
 # region Imports and module setup
 from __future__ import annotations

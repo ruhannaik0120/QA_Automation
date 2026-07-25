@@ -1,4 +1,10 @@
-"""Securely download declared external inputs into an initialized ticket run."""
+"""Securely acquire declared external inputs for an initialized QA ticket run.
+
+The module validates workspace ownership, environment-backed authentication,
+URL and redirect policy, response type, archive expansion, and destination
+paths before committing files. Downloads remain inert source material; this
+module never executes SQL, scripts, or document content.
+"""
 
 # region Imports and module setup
 from __future__ import annotations
@@ -71,6 +77,8 @@ _SENSITIVE_REDIRECT_HEADERS = {
 # endregion Imports and module setup
 
 
+# Error and data contracts keep CLI failures specific without exposing raw
+# credentials, signed URLs, or backend exception details.
 # region Class: Ticket input error
 class TicketInputError(Exception):
     """Base class for safe, user-facing ticket-input failures."""
@@ -79,7 +87,7 @@ class TicketInputError(Exception):
 
 # region Class: Workspace error
 class WorkspaceError(TicketInputError):
-    """Report a missing or unsafe ticket workspace."""
+    """Report that the requested ticket workspace is missing or unsafe to use."""
 # endregion Class: Workspace error
 
 
@@ -174,6 +182,8 @@ class DownloadArtifact:
 # endregion Class: Download artifact
 
 
+# Authentication values are loaded from named environment profiles and exist
+# only long enough to construct request headers; they are never persisted.
 # region Function: UTC timestamp
 def _utc_timestamp() -> str:
     """Return an ISO-8601 completion timestamp in UTC."""
@@ -247,6 +257,8 @@ def authentication_headers(
 # endregion Function: Authentication headers
 
 
+# Repository and ticket-path helpers enforce the ownership boundary between
+# external inputs in ``downloads/`` and workflow artifacts in ``generated/``.
 # region Function: Normalize extension
 def _normalize_extension(extension: str) -> str:
     """Return a lowercase extension with one safe leading dot."""
@@ -326,6 +338,8 @@ def ticket_workspace(
 # endregion Function: Ticket workspace
 
 
+# URL policy validates the initial host and every redirect. Sensitive headers
+# may cross a redirect only when scheme, host, and effective port are unchanged.
 # region Function: Normalize allowed hosts
 def _normalize_allowed_hosts(hosts: Sequence[str]) -> set[str]:
     """Validate and normalize an explicit host allowlist."""
@@ -531,6 +545,8 @@ def _build_validated_opener(
 # endregion Function: Build validated opener
 
 
+# Filename, content, and archive validation happens against operation-owned
+# temporary files before any final ticket artifact can be replaced.
 # region Function: Validate path component
 def _validate_path_component(component: str, *, description: str) -> str:
     """Reject unsafe or Windows-incompatible individual path components."""
@@ -724,6 +740,8 @@ def validate_file_format(
 # endregion Function: Validate file format
 
 
+# Stream and commit helpers enforce the compressed download ceiling and use
+# exclusive temporary files plus atomic, race-safe destination operations.
 # region Function: Commit partial file
 def _commit_partial_file(partial_path: Path, destination: Path, *, overwrite: bool) -> None:
     """Atomically commit a validated partial file with explicit overwrite policy."""
@@ -809,12 +827,15 @@ def _download_to_directory(
 ) -> DownloadArtifact:
     """Download, validate, and atomically commit one file."""
 
+    # Reject unusable limits before making a request or creating temporary data.
     if max_bytes <= 0:
         raise DownloadSizeError("Maximum bytes must be greater than zero.")
     if timeout_seconds <= 0:
         raise DownloadRequestError("Timeout seconds must be greater than zero.")
     normalized_extension = _normalize_extension(expected_extension)
     parsed = validate_request_url(url, allowed_hosts, github_archive=github_archive)
+    # Authentication is attached only after the initial URL passes host policy;
+    # GitHub API credentials are stripped for any non-API archive destination.
     request_headers = {
         "Accept": "application/vnd.github+json" if github_archive else "*/*",
         "User-Agent": "qa-automation-ticket-input-downloader/1.0",
@@ -837,6 +858,8 @@ def _download_to_directory(
 
     try:
         with active_opener.open(request, timeout=timeout_seconds) as response:
+            # Injected openers and redirect handlers both report a final URL.
+            # Revalidating it keeps tests and production on the same trust path.
             final_url = response.geturl()
             validate_request_url(
                 final_url,
@@ -857,6 +880,8 @@ def _download_to_directory(
             destination = _safe_child(destination_directory, filename)
             if destination.exists() and not overwrite:
                 raise OverwriteProtectionError(f"Destination already exists: {filename}")
+            # The random exclusive temporary belongs only to this operation, so
+            # cleanup cannot remove another process's predictable partial file.
             partial_descriptor, partial_name = tempfile.mkstemp(
                 prefix=".ticket-input-",
                 suffix=".partial",
@@ -870,6 +895,8 @@ def _download_to_directory(
                     partial_file,
                     max_bytes=max_bytes,
                 )
+            # Content is inspected only after bounded streaming completes and
+            # before the temporary file is atomically committed.
             _reject_html_response(partial_path, content_type)
             detected_type = validate_file_format(
                 partial_path,
@@ -904,6 +931,8 @@ def _download_to_directory(
 # endregion Function: Download to directory
 
 
+# Manifest records contain sanitized provenance and are replaced atomically only
+# after the prior JSON has been validated and the new payload serialized.
 # region Function: Project-relative path
 def _project_relative(path: Path, ticket_runs_root: Path) -> str:
     """Return a stable path relative to the repository containing ticket_runs."""
@@ -942,6 +971,8 @@ def append_manifest_entry(manifest_path: Path, entry: dict[str, object]) -> None
         raise ManifestError("Existing download manifest must contain a downloads list.")
     downloads.append(entry)
 
+    # Serialize before creating a temporary path so invalid values cannot leave
+    # a misleading partial manifest beside the previous valid record.
     try:
         serialized = json.dumps(payload, indent=2, ensure_ascii=True) + "\n"
     except (TypeError, ValueError) as exc:
@@ -949,6 +980,8 @@ def append_manifest_entry(manifest_path: Path, entry: dict[str, object]) -> None
 
     temporary_path: Path | None = None
     temporary_descriptor: int | None = None
+    # A unique same-directory temporary prevents cross-process cleanup races,
+    # while ``os.replace`` gives readers an all-old or all-new manifest.
     try:
         temporary_descriptor, temporary_name = tempfile.mkstemp(
             prefix=".download-manifest-",
@@ -976,6 +1009,8 @@ def append_manifest_entry(manifest_path: Path, entry: dict[str, object]) -> None
 # endregion Function: Append manifest entry
 
 
+# Direct-file orchestration binds one validated artifact and one manifest entry
+# to the already initialized ticket workspace.
 # region Function: Download direct file
 def download_direct_file(
     *,
@@ -1029,6 +1064,8 @@ def download_direct_file(
 # endregion Function: Download direct file
 
 
+# GitHub package identifiers and every ZIP member are validated as exact path
+# components before selection; substring matches never identify a package.
 # region Function: Validate repository
 def validate_repository(repository: str) -> tuple[str, str]:
     """Parse an exact owner/repository identifier without URL interpretation."""
@@ -1188,6 +1225,8 @@ def _inspect_package_archive(
 # endregion Function: Inspect package archive
 
 
+# Extraction is transactional: all selected members are staged and existing
+# destinations backed up before any final file changes.
 # region Function: Create owned directory chain
 def _create_owned_directory_chain(
     directory: Path,
@@ -1274,6 +1313,8 @@ def extract_github_package(
 ) -> list[Path]:
     """Safely extract only permitted regular files from one exact package."""
 
+    # Archive-wide metadata limits are checked before opening a member stream,
+    # preventing ZIP bombs outside the selected package from bypassing policy.
     if max_bytes <= 0:
         raise DownloadSizeError("Maximum bytes must be greater than zero.")
     package_parts = validate_package_path(package_path)
@@ -1302,6 +1343,8 @@ def extract_github_package(
         if declared_total > max_bytes:
             raise DownloadSizeError(f"Extracted package exceeds the maximum of {max_bytes} bytes.")
 
+        # Build the complete destination plan before creating ``qa_scripts`` so
+        # validation failure cannot leave a partial package or empty run tree.
         destinations: list[tuple[zipfile.ZipInfo, tuple[str, ...], Path]] = []
         for info, relative_parts in selected:
             destination = _safe_child(extraction_root, *relative_parts)
@@ -1315,6 +1358,8 @@ def extract_github_package(
                 )
             destinations.append((info, relative_parts, destination))
 
+        # ``mkdtemp`` creates a private operation-owned boundary for payload and
+        # backups; neither path is visible as a completed QA package.
         staging_root = Path(
             tempfile.mkdtemp(
                 prefix=f".{extraction_root.name}.staging-",
@@ -1352,6 +1397,8 @@ def extract_github_package(
                 raise FileFormatError("Extracted member size does not match ZIP metadata.")
             staged_files.append((staged_path, destination))
 
+        # Preserve every existing destination before the first overwrite. A
+        # later commit failure can therefore restore the package byte-for-byte.
         if overwrite:
             backup_root.mkdir()
             for index, (_, destination) in enumerate(staged_files):
@@ -1367,6 +1414,8 @@ def extract_github_package(
                 owned_directories,
             )
 
+        # Final commits occur only after staging, size checks, backup creation,
+        # and directory planning have all completed successfully.
         for staged_path, destination in staged_files:
             _commit_partial_file(
                 staged_path,
@@ -1375,6 +1424,8 @@ def extract_github_package(
             )
             committed_destinations.append(destination)
     except Exception:
+        # Roll back only paths recorded as operation-owned; unrelated files and
+        # pre-existing directories are deliberately left untouched.
         if committed_destinations:
             _rollback_extraction_commits(committed_destinations, backups)
         _remove_owned_directories(owned_directories)
@@ -1387,6 +1438,8 @@ def extract_github_package(
 # endregion Function: Extract GitHub package
 
 
+# GitHub orchestration downloads the inert source archive through the API,
+# extracts only the exact approved package, and records hashes and paths.
 # region Function: Download GitHub package
 def download_github_package(
     *,
@@ -1475,6 +1528,8 @@ def download_github_package(
 # endregion Function: Download GitHub package
 
 
+# CLI parsing exposes limits and source declarations but never accepts raw
+# credential values; authentication is always resolved from a named profile.
 # region Function: Add archive limit arguments
 def _add_archive_limit_arguments(parser: argparse.ArgumentParser) -> None:
     """Add configurable ZIP metadata safety limits to one subcommand."""
@@ -1561,6 +1616,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     parser = build_parser()
     args = parser.parse_args(argv)
+    # Both subcommands return the same structured success/error contract so an
+    # agent can stop safely without parsing traceback or credential text.
     try:
         if args.command == "file":
             result = download_direct_file(

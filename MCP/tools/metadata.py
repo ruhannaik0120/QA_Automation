@@ -46,7 +46,11 @@ def describe_table(
     environment: str = "",
     timeout_seconds: int | None = None,
 ) -> dict:
-    """Return column metadata for a specific table."""
+    """Return normalized metadata for one explicit database object.
+
+    The runtime lock keeps metadata discovery consistent with the active
+    profile while ``QueryService`` owns validation and safe error shaping.
+    """
 
     with runtime_lock:
         return query_service.describe_table(

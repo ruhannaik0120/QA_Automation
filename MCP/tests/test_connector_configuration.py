@@ -1,4 +1,8 @@
-"""Backend-specific configuration mapping tests that require no live secrets."""
+"""Verify backend profiles map to exact driver connection arguments.
+
+Fake MySQL, PostgreSQL, Snowflake, and SQL Server drivers capture arguments so
+the tests can prove timeout, authentication, and option behavior offline.
+"""
 
 # region Imports and module setup
 from contextlib import contextmanager
@@ -16,7 +20,7 @@ from connectors.snowflake.connector import SnowflakeConnector
 
 # region Function: Configure
 def _configure(monkeypatch, db_type: str, options: str = "{}") -> None:
-    """Support configure."""
+    """Load one deterministic backend profile for argument-mapping tests."""
     monkeypatch.setenv("DB_TYPE", db_type)
     monkeypatch.setenv("DB_HOST", "db.example.test")
     monkeypatch.setenv("DB_DATABASE", "qa_demo")
@@ -104,7 +108,7 @@ class _WriteCursor:
 
     # region Function: Execute
     def execute(self, query, *args, **kwargs):
-        """Handle execute."""
+        """Capture the accepted write and driver-specific execution options."""
         self.query = query
         self.execute_args = args
         self.execute_kwargs = kwargs
@@ -112,7 +116,7 @@ class _WriteCursor:
 
     # region Function: Close
     def close(self):
-        """Handle close."""
+        """Provide the cursor cleanup hook expected by connectors."""
         return None
     # endregion Function: Close
 # endregion Class: WriteCursor
@@ -123,20 +127,20 @@ class _WriteConnection:
     """Record whether a transactional connector commits an accepted write."""
     # region Function: Init
     def __init__(self):
-        """Initialize this object."""
+        """Create an uncommitted transaction around one write cursor."""
         self.cursor_object = _WriteCursor()
         self.committed = False
     # endregion Function: Init
 
     # region Function: Cursor
     def cursor(self):
-        """Handle cursor."""
+        """Return the transaction's deterministic write cursor."""
         return self.cursor_object
     # endregion Function: Cursor
 
     # region Function: Commit
     def commit(self):
-        """Handle commit."""
+        """Record the connector's successful transaction commit."""
         self.committed = True
     # endregion Function: Commit
 # endregion Class: WriteConnection
@@ -161,7 +165,7 @@ def test_transactional_connectors_commit_writes(monkeypatch, db_type, connector_
     # region Function: Fake connection
     @contextmanager
     def fake_connection(*args, **kwargs):
-        """Handle fake connection."""
+        """Yield the transaction double through the connector context API."""
         yield connection
     # endregion Function: Fake connection
 
@@ -189,7 +193,7 @@ def test_postgresql_commits_write_returning_rows(monkeypatch):
     # region Function: Fake connection
     @contextmanager
     def fake_connection(*args, **kwargs):
-        """Handle fake connection."""
+        """Yield the returning-write transaction through the context API."""
         yield connection
     # endregion Function: Fake connection
 

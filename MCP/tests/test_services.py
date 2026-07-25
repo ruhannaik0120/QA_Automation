@@ -1,4 +1,9 @@
-"""Service-layer tests for delegation and response shaping."""
+"""Verify QueryService policy, connector delegation, and response normalization.
+
+The fake connector records every call so tests can prove validation occurs
+before execution, compatibility inputs select one statement, and errors remain
+structured without contacting a database.
+"""
 
 # region Imports and module setup
 from config import Config
@@ -13,13 +18,13 @@ class FakeConnector:
 
     # region Function: Init
     def __init__(self):
-        """Initialize this object."""
+        """Initialize ordered call capture for service-boundary assertions."""
         self.calls = []
     # endregion Function: Init
 
     # region Function: Test connection
     def test_connection(self, database=None, timeout_seconds=None):
-        """Verify connection."""
+        """Record a connection test and return a connected server snapshot."""
         self.calls.append(("test_connection", database, timeout_seconds))
         return {
             "connector_type": "FakeConnector",
@@ -30,7 +35,7 @@ class FakeConnector:
 
     # region Function: Health check
     def health_check(self, database=None, timeout_seconds=None):
-        """Handle health check."""
+        """Record a health probe and return deterministic healthy metadata."""
         self.calls.append(("health_check", database, timeout_seconds))
         return {
             "connector_type": "FakeConnector",
@@ -41,21 +46,21 @@ class FakeConnector:
 
     # region Function: List databases
     def list_databases(self, timeout_seconds=None):
-        """Handle list databases."""
+        """Record metadata access and return two database names."""
         self.calls.append(("list_databases", timeout_seconds))
         return {"count": 2, "databases": [{"name": "alpha"}, {"name": "beta"}]}
     # endregion Function: List databases
 
     # region Function: List tables
     def list_tables(self, database=None, schema=None, timeout_seconds=None):
-        """Handle list tables."""
+        """Record table discovery and return one table in the requested schema."""
         self.calls.append(("list_tables", database, schema, timeout_seconds))
         return {"count": 1, "tables": [{"TABLE_SCHEMA": schema or "dbo", "TABLE_NAME": "items"}]}
     # endregion Function: List tables
 
     # region Function: Describe table
     def describe_table(self, database=None, table=None, schema=None, timeout_seconds=None):
-        """Handle describe table."""
+        """Record table inspection and return one deterministic column."""
         self.calls.append(("describe_table", database, table, schema, timeout_seconds))
         return {
             "database": database,
@@ -68,14 +73,14 @@ class FakeConnector:
 
     # region Function: Execute query
     def execute_query(self, query, *, database=None, timeout_seconds=None, max_rows=None):
-        """Handle execute query."""
+        """Record delegated SQL and return a deterministic two-row result."""
         self.calls.append(("execute_query", query, database, timeout_seconds, max_rows))
         return {"columns": ["name"], "rows": [("alpha",), ("beta",)]}
     # endregion Function: Execute query
 
     # region Function: Close
     def close(self):
-        """Handle close."""
+        """Record explicit connector cleanup requested by the service."""
         self.calls.append(("close",))
     # endregion Function: Close
 # endregion Class: FakeConnector
@@ -160,10 +165,11 @@ def test_suggest_columns_uses_metadata_without_executing_sql(monkeypatch):
 
     # region Class: MetadataConnector
     class MetadataConnector(FakeConnector):
+        """Return realistic order columns for suggestion ranking tests."""
+
         # region Function: Describe table
-        """Provide the MetadataConnector implementation."""
         def describe_table(self, database=None, table=None, schema=None, timeout_seconds=None):
-            """Handle describe table."""
+            """Return candidate columns without executing or rewriting SQL."""
             self.calls.append(("describe_table", database, table, schema, timeout_seconds))
             return {
                 "database": database,
@@ -397,10 +403,11 @@ def test_connector_errors_redact_configured_password(monkeypatch):
 
     # region Class: FailingConnector
     class FailingConnector(FakeConnector):
+        """Raise a credential-bearing error to verify response redaction."""
+
         # region Function: Execute query
-        """Provide the FailingConnector implementation."""
         def execute_query(self, query, **kwargs):
-            """Handle execute query."""
+            """Simulate a driver authentication failure before any result."""
             raise RuntimeError("Authentication failed for password dev_pass")
         # endregion Function: Execute query
     # endregion Class: FailingConnector

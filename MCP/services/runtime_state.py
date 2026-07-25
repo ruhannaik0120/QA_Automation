@@ -1,4 +1,9 @@
-"""Identity and synchronization for one isolated MCP runtime process."""
+"""Hold process identity and the lock protecting mutable MCP runtime state.
+
+Profile settings and cached connectors are process-wide. The shared re-entrant
+lock prevents requests from observing a partially completed profile switch,
+while the non-secret runtime ID supports diagnostics and log correlation.
+"""
 
 # region Imports and module setup
 from datetime import datetime, timezone

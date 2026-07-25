@@ -1,4 +1,9 @@
-"""Agent-facing tools for safe runtime connector switching."""
+"""Expose profile discovery, switching, and reload operations to MCP clients.
+
+These wrappers preserve the explicit confirmation contract enforced by the
+profile service. They do not read environment files or manipulate connectors
+directly.
+"""
 
 # region Imports and module setup
 from services.profile_service import list_connection_profiles, reload_runtime_configuration, switch_connection_profile
