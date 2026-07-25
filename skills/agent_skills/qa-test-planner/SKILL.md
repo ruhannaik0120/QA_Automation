@@ -1,206 +1,758 @@
 ---
 name: qa-test-planner
-description: Create structured, evidence-oriented QA plans from approved ticket context. Use when a selected client workflow checklist item explicitly requires qa-test-planner, or for an authorized standalone fictional planning exercise. Identify applicable coverage, proposed checks, expected evidence, and blockers without executing tests, SQL, downloads, or live tools.
+description: Generate comprehensive test plans, manual test cases, regression test suites, and bug reports for QA engineers. Includes Figma MCP integration for design validation.
+trigger: explicit
 ---
 
 # QA Test Planner
 
-## Purpose
+A comprehensive skill for QA engineers to create test plans, generate manual test cases, build regression test suites, validate designs against Figma, and document bugs effectively.
 
-This Agent Skill supports one QA-planning checklist item. It converts
-authoritative, approved context into a structured QA plan that another workflow
-stage can review and use.
+> **Activation:** This skill is triggered only when explicitly called by name (e.g., `/qa-test-planner`, `qa-test-planner`, or `use the skill qa-test-planner`).
 
-The skill is planning-only. It does not select a client workflow, approve its
-own output, generate execution evidence, or perform validation actions. The
-selected workflow and permanent project instructions remain authoritative.
+---
 
-The presence of this folder does not make the skill active, mandatory, or
-formally approved for a workflow. A workflow must reference the exact key
-`qa-test-planner` in its applicable checklist item before the skill is used in
-a ticket run.
+## Quick Start
 
-## Required Inputs
+**Create a test plan:**
+```
+"Create a test plan for the user authentication feature"
+```
 
-Use only values established by authoritative context:
+**Generate test cases:**
+```
+"Generate manual test cases for the checkout flow"
+```
 
-- the selected workflow and invoking checklist item;
-- the ticket identifier when operating inside a ticket run;
-- the approved ticket context and its source provenance;
-- the recorded context-approval decision when the workflow requires it;
-- the approved QA scope, environments, systems, and objects;
-- relevant technical specifications and developer evidence;
-- the inventory of downloaded supporting material, when applicable;
-- explicit acceptance criteria and expected outcomes; and
-- the workflow-defined output path and formatting requirements.
+**Build regression suite:**
+```
+"Build a regression test suite for the payment module"
+```
 
-Do not accept credentials, tokens, passwords, cookies, private keys, connection
-strings, or signed URLs as planning inputs. Refer only to the approved profile
-or authentication-profile name when a later workflow stage requires one.
+**Validate against Figma:**
+```
+"Compare the login page against the Figma design at [URL]"
+```
 
-If an action-critical input is missing, ambiguous, contradictory, unapproved,
-or unsupported, mark the affected planning work `blocked`, list the exact
-question, and return control to the workflow. Never fill a gap with a guess.
+**Create bug report:**
+```
+"Create a bug report for the form validation issue"
+```
 
-## Outputs
+---
 
-Produce only:
+## Quick Reference
 
-- a structured QA plan at the path required by the selected workflow;
-- an applicability decision for every minimum coverage category;
-- proposed checks with stable IDs, prerequisites, expected outcomes, and
-  evidence requirements;
-- dependencies, risks, unresolved questions, and blockers; and
-- a handoff note identifying later workflow stages and approvals that remain.
+| Task | What You Get | Time |
+|------|--------------|------|
+| Test Plan | Strategy, scope, schedule, risks | 10-15 min |
+| Test Cases | Step-by-step instructions, expected results | 5-10 min each |
+| Regression Suite | Smoke tests, critical paths, execution order | 15-20 min |
+| Figma Validation | Design-implementation comparison, discrepancy list | 10-15 min |
+| Bug Report | Reproducible steps, environment, evidence | 5 min |
 
-When no workflow output path applies, return the plan as a draft response and
-do not write repository files.
+---
 
-The skill does not produce approvals, executable SQL, execution results,
-pass/fail evidence, bug tickets, final reports, or release decisions.
+## How It Works
 
-## Planning Procedure
+```
+Your Request
+    │
+    ▼
+┌─────────────────────────────────────────────────────┐
+│ 1. ANALYZE                                          │
+│    • Parse feature/requirement                      │
+│    • Identify test types needed                     │
+│    • Determine scope and priorities                 │
+├─────────────────────────────────────────────────────┤
+│ 2. GENERATE                                         │
+│    • Create structured deliverables                 │
+│    • Apply templates and best practices             │
+│    • Include edge cases and variations              │
+├─────────────────────────────────────────────────────┤
+│ 3. VALIDATE                                         │
+│    • Check completeness                             │
+│    • Verify traceability                            │
+│    • Ensure actionable steps                        │
+└─────────────────────────────────────────────────────┘
+    │
+    ▼
+QA Deliverable Ready
+```
 
-1. Confirm the exact skill key, selected workflow, invoking checklist item, and
-   output boundary.
-2. Confirm that the workflow's required context checkpoint is complete before
-   using approved context to plan checks.
-3. Separate authoritative facts from unresolved questions. Record source
-   provenance for each action-critical fact.
-4. Define the in-scope and out-of-scope behavior without expanding the approved
-   ticket scope.
-5. Evaluate every category in the minimum QA coverage matrix below.
-6. For each applicable category, propose focused checks with expected outcomes
-   taken from authoritative context and identify the evidence a later stage
-   must capture.
-7. For each non-applicable category, record the authoritative reason. Do not
-   omit a category silently.
-8. Add ticket-specific checks required by approved context beyond the minimum
-   matrix.
-9. Record dependencies, risks, stop conditions, and any later approval or tool
-   requirement without performing those actions.
-10. Validate the plan for completeness, traceability, and absence of invented
-    values, then return control to the invoking workflow.
+---
 
-Use [QA Plan Output Template](references/qa_plan_template.md) when a Markdown
-plan is required.
+## Commands
 
-## Minimum QA Coverage Matrix
+### Interactive Scripts
 
-Evaluate each category as `applicable`, `not_applicable`, or `blocked`:
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `./scripts/generate_test_cases.sh` | Create test cases interactively | Step-by-step prompts |
+| `./scripts/create_bug_report.sh` | Generate bug reports | Guided input collection |
 
-1. Database, schema, and object existence.
-2. Column names, data types, lengths, precision, scale, and nullability.
-3. Source and target row counts.
-4. Null checks.
-5. Duplicate and uniqueness checks.
-6. Primary-key and referential-integrity checks.
-7. Source-to-target mappings.
-8. Transformations and business rules.
-9. Aggregate and reconciliation checks.
-10. Incremental-load behavior.
-11. Idempotency and safe rerun behavior.
-12. Audit columns, timestamps, and load identifiers.
-13. Boundary and negative cases.
-14. Performance checks only when required by authoritative context.
-15. Rollback and recovery behavior.
+### Natural Language
 
-Marking a category `applicable` adds it to the plan; it does not authorize or
-execute the check. Marking one `not_applicable` requires a recorded reason from
-authoritative context. Use `blocked` when applicability cannot be proven.
+| Request | Output |
+|---------|--------|
+| "Create test plan for {feature}" | Complete test plan document |
+| "Generate {N} test cases for {feature}" | Numbered test cases with steps |
+| "Build smoke test suite" | Critical path tests |
+| "Compare with Figma at {URL}" | Visual validation checklist |
+| "Document bug: {description}" | Structured bug report |
 
-## Planned Check Contract
+---
 
-Each proposed check should define:
+## Core Deliverables
 
-- **Check ID:** A stable ticket-local identifier.
-- **Objective:** The requirement or risk being validated.
-- **Category:** One minimum-matrix or approved ticket-specific category.
-- **Applicability:** `applicable`, `not_applicable`, or `blocked`.
-- **Reason:** Why the applicability decision is justified.
-- **Authoritative source:** The approved source for scope and expected outcome.
-- **Prerequisites:** Conditions a later execution stage must confirm.
-- **Required inputs:** Non-secret values needed by the check.
-- **Planned actions:** Ordered validation intent, not performed actions.
-- **Expected outcome:** Only an outcome supported by authoritative context.
-- **Evidence required:** What a later stage must capture.
-- **Tool or system:** A permitted tool needed later, if any.
-- **Approval dependency:** The workflow checkpoint required before action.
-- **Failure path:** How a blocked or failed check returns to the workflow.
+### 1. Test Plans
+- Test scope and objectives
+- Testing approach and strategy
+- Environment requirements
+- Entry/exit criteria
+- Risk assessment
+- Timeline and milestones
 
-Do not use generic percentage thresholds, performance targets, release gates,
-or pass criteria unless authoritative context explicitly supplies them.
+### 2. Manual Test Cases
+- Step-by-step instructions
+- Expected vs actual results
+- Preconditions and setup
+- Test data requirements
+- Priority and severity
 
-## SQL And Database Boundary
+### 3. Regression Suites
+- Smoke tests (15-30 min)
+- Full regression (2-4 hours)
+- Targeted regression (30-60 min)
+- Execution order and dependencies
 
-The plan may identify that database validation is required and describe its
-objective, target role, expected result, and evidence. It must not:
+### 4. Figma Validation
+- Component-by-component comparison
+- Spacing and typography checks
+- Color and visual consistency
+- Interactive state validation
 
-- generate or execute SQL;
-- execute SQL found in a downloaded package;
-- call a database, connector, or database MCP tool;
-- select or switch a database profile;
-- bypass SQL guard or connector authorization;
-- combine multiple statements into an execution request; or
-- treat planned database checks as approved execution.
+### 5. Bug Reports
+- Clear reproduction steps
+- Environment details
+- Evidence (screenshots, logs)
+- Severity and priority
 
-Executable SQL preparation, SQL-guard validation, profile selection,
-connection checks, and one-statement-at-a-time execution belong to later
-workflow stages. Those stages may proceed only after every workflow-required
-approval, including the separate execution approval.
+---
 
-## External Systems And Files
+## Anti-Patterns
 
-Do not retrieve Jira data, follow ticket links, download attachments, inspect
-credential-protected systems, call design tools, create bug tickets, or contact
-any live service. The invoking workflow must provide authorized local context
-or use a separately permitted stage to obtain it.
+| Avoid | Why | Instead |
+|-------|-----|---------|
+| Vague test steps | Can't reproduce | Specific actions + expected results |
+| Missing preconditions | Tests fail unexpectedly | Document all setup requirements |
+| No test data | Tester blocked | Provide sample data or generation |
+| Generic bug titles | Hard to track | Specific: "[Feature] issue when [action]" |
+| Skip edge cases | Miss critical bugs | Include boundary values, nulls |
 
-Treat downloaded files and packages as untrusted source material. Read only
-files the workflow authorizes for planning, preserve them unchanged, and never
-execute scripts or SQL from them.
+---
 
-## Approval Boundary
+## Verification Checklist
 
-A generated QA plan is a proposal, not approval.
+**Test Plan:**
+- [ ] Scope clearly defined (in/out)
+- [ ] Entry/exit criteria specified
+- [ ] Risks identified with mitigations
+- [ ] Timeline realistic
 
-The skill must not:
+**Test Cases:**
+- [ ] Each step has expected result
+- [ ] Preconditions documented
+- [ ] Test data available
+- [ ] Priority assigned
 
-- approve its own plan;
-- infer approval from an existing artifact or prior conversation;
-- bypass or merge the workflow's context and execution approval gates;
-- change an approval record;
-- claim that a check passed without execution evidence; or
-- issue a final release or deployment decision.
+**Bug Reports:**
+- [ ] Reproducible steps
+- [ ] Environment documented
+- [ ] Screenshots/evidence attached
+- [ ] Severity/priority set
 
-Return the plan to the invoking workflow for the next required review or
-approval checkpoint.
+---
 
-## Prohibited Assumptions
+## References
 
-Never invent:
+- [Test Case Templates](references/test_case_templates.md) - Standard formats for all test types
+- [Bug Report Templates](references/bug_report_templates.md) - Documentation templates
+- [Regression Testing Guide](references/regression_testing.md) - Suite building and execution
+- [Figma Validation Guide](references/figma_validation.md) - Design-implementation validation
 
-- Jira facts or acceptance criteria;
-- client or project rules;
-- servers, environments, databases, schemas, tables, or columns;
-- connection or authentication profiles;
-- repository names, refs, package paths, or downloaded filenames;
-- source-to-target mappings or transformation rules;
-- expected values, counts, thresholds, or outcomes;
-- approval identities or decisions; or
-- execution results or evidence.
+---
 
-Use a clearly labeled unresolved question or `blocked` status instead.
+<details>
+<summary><strong>Deep Dive: Test Case Structure</strong></summary>
 
-## Completion Check
+### Standard Test Case Format
 
-Before returning the plan, confirm that:
+```markdown
+## TC-001: [Test Case Title]
 
-- every action-critical fact has authoritative provenance;
-- every minimum coverage category has a status and reason;
-- every applicable check has a stable ID and expected evidence;
-- no expected outcome was invented;
-- blockers and contradictions are explicit;
-- no live action, SQL execution, or approval occurred;
-- context and execution gates remain separate; and
-- the handoff returns control to the invoking workflow.
+**Priority:** High | Medium | Low
+**Type:** Functional | UI | Integration | Regression
+**Status:** Not Run | Pass | Fail | Blocked
+
+### Objective
+[What are we testing and why]
+
+### Preconditions
+- [Setup requirement 1]
+- [Setup requirement 2]
+- [Test data needed]
+
+### Test Steps
+1. [Action to perform]
+   **Expected:** [What should happen]
+
+2. [Action to perform]
+   **Expected:** [What should happen]
+
+3. [Action to perform]
+   **Expected:** [What should happen]
+
+### Test Data
+- Input: [Test data values]
+- User: [Test account details]
+- Configuration: [Environment settings]
+
+### Post-conditions
+- [System state after test]
+- [Cleanup required]
+
+### Notes
+- [Edge cases to consider]
+- [Related test cases]
+- [Known issues]
+```
+
+### Test Types
+
+| Type | Focus | Example |
+|------|-------|---------|
+| Functional | Business logic | Login with valid credentials |
+| UI/Visual | Appearance, layout | Button matches Figma design |
+| Integration | Component interaction | API returns data to frontend |
+| Regression | Existing functionality | Previous features still work |
+| Performance | Speed, load handling | Page loads under 3 seconds |
+| Security | Vulnerabilities | SQL injection prevented |
+
+</details>
+
+<details>
+<summary><strong>Deep Dive: Test Plan Template</strong></summary>
+
+### Test Plan Structure
+
+```markdown
+# Test Plan: [Feature/Release Name]
+
+## Executive Summary
+- Feature/product being tested
+- Testing objectives
+- Key risks
+- Timeline overview
+
+## Test Scope
+
+**In Scope:**
+- Features to be tested
+- Test types (functional, UI, performance)
+- Platforms and environments
+- User flows and scenarios
+
+**Out of Scope:**
+- Features not being tested
+- Known limitations
+- Third-party integrations (if applicable)
+
+## Test Strategy
+
+**Test Types:**
+- Manual testing
+- Exploratory testing
+- Regression testing
+- Integration testing
+- User acceptance testing
+
+**Test Approach:**
+- Black box testing
+- Positive and negative testing
+- Boundary value analysis
+- Equivalence partitioning
+
+## Test Environment
+- Operating systems
+- Browsers and versions
+- Devices (mobile, tablet, desktop)
+- Test data requirements
+- Backend/API environments
+
+## Entry Criteria
+- [ ] Requirements documented
+- [ ] Designs finalized
+- [ ] Test environment ready
+- [ ] Test data prepared
+- [ ] Build deployed
+
+## Exit Criteria
+- [ ] All high-priority test cases executed
+- [ ] 90%+ test case pass rate
+- [ ] All critical bugs fixed
+- [ ] No open high-severity bugs
+- [ ] Regression suite passed
+
+## Risk Assessment
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| [Risk 1] | H/M/L | H/M/L | [Mitigation] |
+
+## Test Deliverables
+- Test plan document
+- Test cases
+- Test execution reports
+- Bug reports
+- Test summary report
+```
+
+</details>
+
+<details>
+<summary><strong>Deep Dive: Bug Reporting</strong></summary>
+
+### Bug Report Template
+
+```markdown
+# BUG-[ID]: [Clear, specific title]
+
+**Severity:** Critical | High | Medium | Low
+**Priority:** P0 | P1 | P2 | P3
+**Type:** Functional | UI | Performance | Security
+**Status:** Open | In Progress | Fixed | Closed
+
+## Environment
+- **OS:** [Windows 11, macOS 14, etc.]
+- **Browser:** [Chrome 120, Firefox 121, etc.]
+- **Device:** [Desktop, iPhone 15, etc.]
+- **Build:** [Version/commit]
+- **URL:** [Page where bug occurs]
+
+## Description
+[Clear, concise description of the issue]
+
+## Steps to Reproduce
+1. [Specific step]
+2. [Specific step]
+3. [Specific step]
+
+## Expected Behavior
+[What should happen]
+
+## Actual Behavior
+[What actually happens]
+
+## Visual Evidence
+- Screenshot: [attached]
+- Video: [link if applicable]
+- Console errors: [paste errors]
+
+## Impact
+- **User Impact:** [How many users affected]
+- **Frequency:** [Always, Sometimes, Rarely]
+- **Workaround:** [If one exists]
+
+## Additional Context
+- Related to: [Feature/ticket]
+- Regression: [Yes/No]
+- Figma design: [Link if UI bug]
+```
+
+### Severity Definitions
+
+| Level | Criteria | Examples |
+|-------|----------|----------|
+| **Critical (P0)** | System crash, data loss, security | Payment fails, login broken |
+| **High (P1)** | Major feature broken, no workaround | Search not working |
+| **Medium (P2)** | Feature partial, workaround exists | Filter missing one option |
+| **Low (P3)** | Cosmetic, rare edge cases | Typo, minor alignment |
+
+</details>
+
+<details>
+<summary><strong>Deep Dive: Figma MCP Integration</strong></summary>
+
+### Design Validation Workflow
+
+**Prerequisites:**
+- Figma MCP server configured
+- Access to Figma design files
+- Figma URLs for components/pages
+
+**Process:**
+
+1. **Get Design Specs from Figma**
+```
+"Get the button specifications from Figma file [URL]"
+
+Response includes:
+- Dimensions (width, height)
+- Colors (background, text, border)
+- Typography (font, size, weight)
+- Spacing (padding, margin)
+- Border radius
+- States (default, hover, active, disabled)
+```
+
+2. **Compare Implementation**
+```
+TC: Primary Button Visual Validation
+1. Inspect primary button in browser dev tools
+2. Compare against Figma specs:
+   - Dimensions: 120x40px
+   - Border-radius: 8px
+   - Background color: #0066FF
+   - Font: 16px Medium #FFFFFF
+3. Document discrepancies
+```
+
+3. **Create Bug if Mismatch**
+```
+BUG: Primary button color doesn't match design
+Severity: Medium
+Expected (Figma): #0066FF
+Actual (Implementation): #0052CC
+Screenshot: [attached]
+Figma link: [specific component]
+```
+
+### What to Validate
+
+| Element | What to Check | Tool |
+|---------|---------------|------|
+| Colors | Hex values exact | Browser color picker |
+| Spacing | Padding/margin px | DevTools computed styles |
+| Typography | Font, size, weight | DevTools font panel |
+| Layout | Width, height, position | DevTools box model |
+| States | Hover, active, focus | Manual interaction |
+| Responsive | Breakpoint behavior | DevTools device mode |
+
+### Example Queries
+```
+"Get button specifications from Figma design [URL]"
+"Compare navigation menu implementation against Figma design"
+"Extract spacing values for dashboard layout from Figma"
+"List all color tokens used in Figma design system"
+```
+
+</details>
+
+<details>
+<summary><strong>Deep Dive: Regression Testing</strong></summary>
+
+### Suite Structure
+
+| Suite Type | Duration | Frequency | Coverage |
+|------------|----------|-----------|----------|
+| Smoke | 15-30 min | Daily | Critical paths only |
+| Targeted | 30-60 min | Per change | Affected areas |
+| Full | 2-4 hours | Weekly/Release | Comprehensive |
+| Sanity | 10-15 min | After hotfix | Quick validation |
+
+### Building a Regression Suite
+
+**Step 1: Identify Critical Paths**
+- What can users NOT live without?
+- What generates revenue?
+- What handles sensitive data?
+- What's used most frequently?
+
+**Step 2: Prioritize Test Cases**
+
+| Priority | Description | Must Run |
+|----------|-------------|----------|
+| P0 | Business-critical, security | Always |
+| P1 | Major features, common flows | Weekly+ |
+| P2 | Minor features, edge cases | Releases |
+
+**Step 3: Execution Order**
+1. Smoke first - if fails, stop and fix build
+2. P0 tests next - must pass before proceeding
+3. P1 then P2 - track all failures
+4. Exploratory - find unexpected issues
+
+### Pass/Fail Criteria
+
+**PASS:**
+- All P0 tests pass
+- 90%+ P1 tests pass
+- No critical bugs open
+
+**FAIL (Block Release):**
+- Any P0 test fails
+- Critical bug discovered
+- Security vulnerability
+- Data loss scenario
+
+**CONDITIONAL:**
+- P1 failures with workarounds
+- Known issues documented
+- Fix plan in place
+
+</details>
+
+<details>
+<summary><strong>Deep Dive: Test Execution Tracking</strong></summary>
+
+### Test Run Report Template
+
+```markdown
+# Test Run: [Release Version]
+
+**Date:** 2024-01-15
+**Build:** v2.5.0-rc1
+**Tester:** [Name]
+**Environment:** Staging
+
+## Summary
+- Total Test Cases: 150
+- Executed: 145
+- Passed: 130
+- Failed: 10
+- Blocked: 5
+- Not Run: 5
+- Pass Rate: 90%
+
+## Test Cases by Priority
+
+| Priority | Total | Pass | Fail | Blocked |
+|----------|-------|------|------|---------|
+| P0 (Critical) | 25 | 23 | 2 | 0 |
+| P1 (High) | 50 | 45 | 3 | 2 |
+| P2 (Medium) | 50 | 45 | 3 | 2 |
+| P3 (Low) | 25 | 17 | 2 | 1 |
+
+## Critical Failures
+- TC-045: Payment processing fails
+  - Bug: BUG-234
+  - Status: Open
+
+## Blocked Tests
+- TC-112: Dashboard widget (API endpoint down)
+
+## Risks
+- 2 critical bugs blocking release
+- Payment integration needs attention
+
+## Next Steps
+- Retest after BUG-234 fix
+- Complete remaining 5 test cases
+- Run full regression before sign-off
+```
+
+### Coverage Tracking
+
+```markdown
+## Coverage Matrix
+
+| Feature | Requirements | Test Cases | Status | Gaps |
+|---------|--------------|------------|--------|------|
+| Login | 8 | 12 | Complete | None |
+| Checkout | 15 | 10 | Partial | Payment errors |
+| Dashboard | 12 | 15 | Complete | None |
+```
+
+</details>
+
+<details>
+<summary><strong>QA Process Workflow</strong></summary>
+
+### Phase 1: Planning
+- [ ] Review requirements and designs
+- [ ] Create test plan
+- [ ] Identify test scenarios
+- [ ] Estimate effort and timeline
+- [ ] Set up test environment
+
+### Phase 2: Test Design
+- [ ] Write test cases
+- [ ] Review test cases with team
+- [ ] Prepare test data
+- [ ] Build regression suite
+- [ ] Get Figma design access
+
+### Phase 3: Execution
+- [ ] Execute test cases
+- [ ] Log bugs with clear steps
+- [ ] Validate against Figma (UI tests)
+- [ ] Track test progress
+- [ ] Communicate blockers
+
+### Phase 4: Reporting
+- [ ] Compile test results
+- [ ] Analyze coverage
+- [ ] Document risks
+- [ ] Provide go/no-go recommendation
+- [ ] Archive test artifacts
+
+</details>
+
+<details>
+<summary><strong>Best Practices</strong></summary>
+
+### Test Case Writing
+
+**DO:**
+- Be specific and unambiguous
+- Include expected results for each step
+- Test one thing per test case
+- Use consistent naming conventions
+- Keep test cases maintainable
+
+**DON'T:**
+- Assume knowledge
+- Make test cases too long
+- Skip preconditions
+- Forget edge cases
+- Leave expected results vague
+
+### Bug Reporting
+
+**DO:**
+- Provide clear reproduction steps
+- Include screenshots/videos
+- Specify exact environment details
+- Describe impact on users
+- Link to Figma for UI bugs
+
+**DON'T:**
+- Report without reproduction steps
+- Use vague descriptions
+- Skip environment details
+- Forget to assign priority
+- Duplicate existing bugs
+
+### Regression Testing
+
+**DO:**
+- Automate repetitive tests when possible
+- Maintain regression suite regularly
+- Prioritize critical paths
+- Run smoke tests frequently
+- Update suite after each release
+
+**DON'T:**
+- Skip regression before releases
+- Let suite become outdated
+- Test everything every time
+- Ignore failed regression tests
+
+</details>
+
+---
+
+## Examples
+
+<details>
+<summary><strong>Example: Login Flow Test Case</strong></summary>
+
+```markdown
+## TC-LOGIN-001: Valid User Login
+
+**Priority:** P0 (Critical)
+**Type:** Functional
+**Estimated Time:** 2 minutes
+
+### Objective
+Verify users can successfully login with valid credentials
+
+### Preconditions
+- User account exists (test@example.com / Test123!)
+- User is not already logged in
+- Browser cookies cleared
+
+### Test Steps
+1. Navigate to https://app.example.com/login
+   **Expected:** Login page displays with email and password fields
+
+2. Enter email: test@example.com
+   **Expected:** Email field accepts input
+
+3. Enter password: Test123!
+   **Expected:** Password field shows masked characters
+
+4. Click "Login" button
+   **Expected:**
+   - Loading indicator appears
+   - User redirected to /dashboard
+   - Welcome message shown: "Welcome back, Test User"
+   - Avatar/profile image displayed in header
+
+### Post-conditions
+- User session created
+- Auth token stored
+- Analytics event logged
+
+### Edge Cases to Consider
+- TC-LOGIN-002: Invalid password
+- TC-LOGIN-003: Non-existent email
+- TC-LOGIN-004: SQL injection attempt
+- TC-LOGIN-005: Very long password
+```
+
+</details>
+
+<details>
+<summary><strong>Example: Responsive Design Test Case</strong></summary>
+
+```markdown
+## TC-UI-045: Mobile Navigation Menu
+
+**Priority:** P1 (High)
+**Type:** UI/Responsive
+**Devices:** Mobile (iPhone, Android)
+
+### Objective
+Verify navigation menu works correctly on mobile devices
+
+### Preconditions
+- Access from mobile device or responsive mode
+- Viewport width: 375px (iPhone SE) to 428px (iPhone Pro Max)
+
+### Test Steps
+1. Open homepage on mobile device
+   **Expected:** Hamburger menu icon visible (top-right)
+
+2. Tap hamburger icon
+   **Expected:**
+   - Menu slides in from right
+   - Overlay appears over content
+   - Close (X) button visible
+
+3. Tap menu item
+   **Expected:** Navigate to section, menu closes
+
+4. Compare against Figma mobile design [link]
+   **Expected:**
+   - Menu width: 280px
+   - Slide animation: 300ms ease-out
+   - Overlay opacity: 0.5, color #000000
+   - Font size: 16px, line-height 24px
+
+### Breakpoints to Test
+- 375px (iPhone SE)
+- 390px (iPhone 14)
+- 428px (iPhone 14 Pro Max)
+- 360px (Galaxy S21)
+```
+
+</details>
+
+---
+
+**"Testing shows the presence, not the absence of bugs." - Edsger Dijkstra**
+
+**"Quality is not an act, it is a habit." - Aristotle**
+
