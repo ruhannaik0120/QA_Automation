@@ -9,8 +9,8 @@ last_edited_by: "ruhannaik0120"
 last_edited_on: "2026-07-25"
 version: "1.0"
 workflow_owner: "ruhannaik0120"
-approved_by: "ruhannaik0120"
-approved_on: "2026-07-25"
+approved_by: null
+approved_on: null
 ---
 
 # Jira-Driven QA Automation POC Workflow
@@ -238,10 +238,25 @@ the paths named by the applicable checklist item.
    - **Permitted tools or systems:** `[repository_filesystem, authorized_metadata_tools_when_required]`
    - **Ordered agent actions:**
      1. Define validation objectives, prerequisites, approved environments, and approved source and target objects.
-     2. Define applicable setup checks, pre-QA checks, transformation or deployment validations, data-quality checks, reconciliation checks, and negative or edge checks.
-     3. Include rollback or recovery checks when the approved change has recoverable state.
+     2. Evaluate every category in the following minimum QA coverage matrix. For each category, mark it `applicable` and define the required checks, expected outcomes, and evidence, or mark it `not_applicable` and record the reason from authoritative context:
+        - database, schema, and object existence;
+        - column names, data types, lengths, precision, scale, and nullability;
+        - source and target row counts;
+        - null checks;
+        - duplicate and uniqueness checks;
+        - primary-key and referential-integrity checks;
+        - source-to-target mappings;
+        - transformations and business rules;
+        - aggregate and reconciliation checks;
+        - incremental-load behaviour;
+        - idempotency and safe rerun behaviour;
+        - audit columns, timestamps, and load identifiers;
+        - boundary and negative cases;
+        - performance checks only when required by authoritative context; and
+        - rollback and recovery behaviour.
+     3. Add any ticket-specific setup, pre-QA, deployment, data-quality, or other validation required by the approved context beyond the minimum matrix.
      4. Define expected outcomes, evidence to capture, stop conditions, and the responsible approval point for any conditional operation.
-     5. Distinguish required checks from non-applicable checks and record why an omitted category does not apply.
+     5. Confirm that every minimum matrix category has applicable checks or a documented non-applicable reason and that no omitted category is left unexplained.
    - **Human approval required:** `false`
    - **Human approver role:** `null`
    - **Expected checkpoint:** The plan covers the approved QA scope with explicit outcomes, evidence, and stop conditions.
