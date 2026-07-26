@@ -49,6 +49,7 @@ Other metadata fields must not affect the filename. For a completed workflow, ch
 
 ## Prerequisites
 
+- The global AI-orchestrated preflight in `Basic_Instructions.md` must succeed before workflow step 1 initializes a ticket workspace. Preflight blockers are not approval checkpoints and must create no ticket runtime artifacts.
 - List the permanent information, authorization, access, source material, environment readiness, and human roles required before this workflow can begin.
 - Explain why every prerequisite is needed and how the AI can verify readiness without exposing credentials or inventing missing context.
 - Specify required detail such as authoritative source, acceptable format, responsible role, and readiness condition.
@@ -64,6 +65,9 @@ Other metadata fields must not affect the filename. For a completed workflow, ch
 - At runtime, **Checklist status** must be one of `not_started`, `in_progress`, `completed`, `skipped`, or `blocked`.
 - Make ordering, dependencies, decision rules, permissions, approvals, checkpoints, completion evidence, artifacts, and failure routing explicit.
 - Do not assume a particular tool, database, protocol, design platform, export format, or previous proof-of-concept process unless this client/project workflow permanently requires it.
+- Preserve this order when applicable: successful global preflight; workspace initialization; direct Jira retrieval and configured source acquisition; durable context and context approval; QA planning; safe database-profile discovery; presentation and approval of exact read-only SQL scope and profile mappings; approved profile switching and connection validation; one approved statement per MCP call; and final evidence, reports, and logs.
+- Use only the context and database-execution approval checkpoints for normal read-only work. Configuration, authentication, connector, dependency, routing, and profile-discovery failures are blockers; DDL, DML, and environment changes require separate explicit authorization.
+- Resume from routing configuration and durable ticket artifacts rather than chat history, and keep normal ticket writes inside the configured ticket, log, and output paths.
 - Do not place ticket-specific content in checklist definitions. Runtime ticket information and generated outputs belong in the ticket workspace.
 
 Apply these checklist rules:

@@ -30,6 +30,63 @@
     "agent_skills_root": "skills/agent_skills",
     "skill_instruction_filename": "SKILL.md"
   },
+  "route_selected_configuration": [
+    {
+      "routing": {
+        "client_name": "ruhan",
+        "project_type": "poc",
+        "workflow_variant": null
+      },
+      "jira": {
+        "site_url": "https://ruhannaik444.atlassian.net",
+        "cloud_id": "51cd9d76-2810-472a-8b50-b2412c213a7f",
+        "retrieval_mode": "direct_issue"
+      },
+      "input_repository": {
+        "repository": "rnnaik1102-droid/QA_Automation_POC_Inputs",
+        "ref": "main",
+        "package_path": "qa_packages/flight_delay_poc",
+        "authentication_profile": "qa-poc-github",
+        "credential_environment_variable": "QA_POC_GITHUB_TOKEN",
+        "allowed_extensions": [
+          ".md",
+          ".json",
+          ".sql"
+        ]
+      },
+      "protected_attachment_mirrors": [
+        {
+          "source_role": "technical_implementation_specification",
+          "path": "qa_packages/flight_delay_poc/supporting_documents/Flight_Delay_Request_Deployment_Document.docx",
+          "availability": "authorized_bootstrap_and_validation_required"
+        },
+        {
+          "source_role": "developer_unit_test_evidence",
+          "path": "qa_packages/flight_delay_poc/supporting_documents/Flight_Delay_Developer_Unit_Test_Results.xlsx",
+          "availability": "authorized_bootstrap_and_validation_required"
+        }
+      ],
+      "database_targets": [
+        {
+          "db_type": "postgresql",
+          "database": "flight_delay_poc",
+          "source_object": "raw.flights",
+          "target_object": "analytics.flight_performance",
+          "qa_schema": "qa"
+        },
+        {
+          "db_type": "snowflake",
+          "database": "FLIGHT_DELAY_POC",
+          "source_object": "RAW.FLIGHTS",
+          "target_object": "ANALYTICS.FLIGHT_PERFORMANCE",
+          "qa_schema": "QA"
+        }
+      ],
+      "required_report_dependencies": [
+        "openpyxl"
+      ]
+    }
+  ],
   "stable_artifact_paths": {
     "ticket_context": "generated/ticket_context.md",
     "qa_plan": "generated/qa_plan.md",
@@ -61,19 +118,14 @@
       "description": "The user confirms that the combined Jira context and relevant local downloaded sources are complete enough for QA planning."
     },
     {
-      "id": "sql_execution",
-      "required_before": "each_sql_execution",
-      "description": "The user approves the generated SQL before it is sent to the database MCP."
+      "id": "database_execution",
+      "required_before": "approved_read_only_sql_execution",
+      "description": "The user approves the exact read-only statements, profile mappings, order, expected results, and stop conditions."
     },
     {
-      "id": "database_profile_switch",
-      "required_before": "each_profile_switch",
-      "description": "The user approves switching to another database system or named profile."
-    },
-    {
-      "id": "final_report_export",
-      "required_before": "html_or_excel_report_generation",
-      "description": "The user chooses and approves the final export format before report files are generated."
+      "id": "write_operation",
+      "required_before": "each_ddl_dml_or_environment_change",
+      "description": "The user separately authorizes any DDL, DML, or environment-changing operation; read-only approval never grants it."
     }
   ],
   "mcp_boundaries": {

@@ -6,8 +6,8 @@ workflow_variant: null
 created_by: "ruhannaik0120"
 created_on: "2026-07-25"
 last_edited_by: "ruhannaik0120"
-last_edited_on: "2026-07-25"
-version: "1.0"
+last_edited_on: "2026-07-26"
+version: "1.1"
 workflow_owner: "ruhannaik0120"
 approved_by: null
 approved_on: null
@@ -55,6 +55,7 @@ This workflow is not applicable when the client, project type, or workflow varia
 
 ## Prerequisites
 
+- The global AI-orchestrated preflight in `Basic_Instructions.md` must finish successfully before this workflow starts. Authentication, configuration, connector, dependency, routing, and profile-ambiguity failures are blockers rather than approval checkpoints and must create no ticket runtime artifacts.
 - The user must provide a Jira ticket key. The agent must not infer or reuse a ticket key from an unrelated run.
 - The agent must have access to the repository and its existing Python environment so it can run the ticket initializer and secure downloader modules.
 - Jira retrieval must use an authorized Atlassian integration. Missing authorization is blocking and must not be bypassed with guessed or cached ticket content.
@@ -83,12 +84,12 @@ the paths named by the applicable checklist item.
    - **Applicability:** `required`
    - **Applicability rule:** Run once at the beginning of every ticket run and safely repeat when resuming.
    - **Checklist status:** `not_started`
-   - **Entry conditions:** `[user_supplied_jira_ticket_key]`
+   - **Entry conditions:** `[user_supplied_jira_ticket_key, global_preflight_succeeded, exact_workflow_selected]`
    - **Required inputs:** `[jira_ticket_key]`
    - **Required Agent Skill:** `null`
    - **Permitted tools or systems:** `[local_python, modules.init_ticket_run, repository_filesystem]`
    - **Ordered agent actions:**
-     1. Validate that the user supplied a Jira ticket key.
+     1. Confirm that preflight validated the user-supplied Jira ticket key and selected this exact workflow.
      2. Run the existing initializer behavior equivalent to `python -m modules.init_ticket_run <ticket-key>`.
      3. Confirm that `ticket_runs/<ticket-id>/downloads/` and `ticket_runs/<ticket-id>/generated/` exist.
      4. Confirm that stable generated starter artifacts exist without replacing any pre-existing ticket artifact.
@@ -112,11 +113,12 @@ the paths named by the applicable checklist item.
    - **Required Agent Skill:** `null`
    - **Permitted tools or systems:** `[authorized_atlassian_integration, jira]`
    - **Ordered agent actions:**
-     1. Retrieve the Jira title, description, acceptance information, attachments, links, and other authorized ticket fields.
-     2. Confirm that the ticket metadata routes exactly to `client_name: ruhan`, `project_type: poc`, and no workflow variant.
-     3. Record Jira as the high-level business request, not as proof of missing technical details.
-     4. Inventory every declared supporting document, attachment, repository reference, package path, and evidence source without following an undeclared location.
-     5. Record unavailable or permission-protected sources as unresolved inputs.
+     1. Reuse the exact Jira issue payload and authorized site URL or cloud ID established by preflight; perform any freshness check through direct issue retrieval with that same identifier.
+     2. Do not replace direct issue retrieval with broad Atlassian search or ask the user to repeat the configured Jira identifier.
+     3. Confirm that the ticket metadata routes exactly to `client_name: ruhan`, `project_type: poc`, and no workflow variant.
+     4. Record Jira as the high-level business request, not as proof of missing technical details.
+     5. Inventory every declared supporting document, attachment, repository reference, package path, and evidence source without following an undeclared location.
+     6. Record unavailable or permission-protected sources as unresolved inputs.
    - **Human approval required:** `false`
    - **Human approver role:** `null`
    - **Expected checkpoint:** Authoritative Jira content and its declared source inventory are available for classification.
@@ -137,11 +139,12 @@ the paths named by the applicable checklist item.
    - **Permitted tools or systems:** `[authorized_atlassian_integration, repository_filesystem, authorized_user_context]`
    - **Ordered agent actions:**
      1. Classify each source as a technical implementation specification, developer unit-test evidence, QA package, or another explicitly approved role.
-     2. Use client or project configuration to interpret client-specific document names; never assume one universal title or filename.
-     3. For each direct file, establish the declared expected extension, exact allowed host, and named environment-backed authentication profile when required.
-     4. For each repository package, establish the exact owner/repository, ref, package path, allowed file extensions, and named environment-backed authentication profile.
-     5. Identify missing, contradictory, ambiguous, or permission-protected details and do not guess replacements.
-     6. Record that no supporting inputs were declared when authoritative ticket context confirms that result.
+     2. Select the exact POC route configuration in `ticket_run_config.json` and reuse its non-secret Jira, repository, attachment-mirror, database-target, and report-dependency values without asking the user to repeat them.
+     3. For each direct Jira file, establish the authorized download URL or connector bytes and expected extension.
+     4. For the repository package, use the configured repository, ref, exact package path, permitted extensions, named authentication profile, and credential-variable reference.
+     5. Treat the configured attachment mirrors as bootstrap locations only until actual DOCX/XLSX bytes have been retrieved and validated; a configured path is not reviewed content.
+     6. Identify missing, contradictory, ambiguous, or permission-protected details and do not guess replacements.
+     7. Record that no supporting inputs were declared when authoritative ticket context confirms that result.
    - **Human approval required:** `false`
    - **Human approver role:** `null`
    - **Expected checkpoint:** Every declared source has an explicit role and complete safe retrieval details, or is recorded as blocked.
@@ -163,12 +166,13 @@ the paths named by the applicable checklist item.
    - **Ordered agent actions:**
      1. Use behavior equivalent to `python -m modules.download_ticket_inputs file ...` for each declared direct file.
      2. Use behavior equivalent to `python -m modules.download_ticket_inputs github-package ...` for each declared exact GitHub repository package.
-     3. Pass credentials only through named environment-backed profiles; never place tokens, passwords, cookies, or authentication headers in command-line values or ticket artifacts.
-     4. Use the declared expected extension, exact host allowlist, repository, ref, package path, and permitted package extensions.
-     5. Do not use overwrite unless an authorized user explicitly approves replacement of the named existing artifact.
-     6. Review `ticket_runs/<ticket-id>/generated/download_manifest.json` for successful paths, file types, byte sizes, hashes, and sanitized source information.
-     7. Preserve downloaded source files unchanged and never execute downloaded SQL or scripts.
-     8. If credential-protected content cannot be accessed, request an authorized user to place it under `downloads/` and then inventory it locally.
+     3. Use the GitHub-package path only for the configured QA package extensions. It does not establish DOCX/XLSX package validity or per-file hashes for the protected attachment mirrors.
+     4. Until the attachment bytes are operationally available, require an authorized bootstrap or manual Jira download to place them under `downloads/`, then validate actual type, byte size, and SHA-256 before review and record that evidence in the source manifest or ticket context.
+     5. Pass credentials only through named environment-backed profiles; never place tokens, passwords, cookies, or authentication headers in command-line values or ticket artifacts.
+     6. Use the declared expected extension, exact host allowlist, repository, ref, package path, and permitted package extensions.
+     7. Do not use overwrite unless an authorized user explicitly approves replacement of the named existing artifact.
+     8. Review `ticket_runs/<ticket-id>/generated/download_manifest.json` for successful paths, file types, byte sizes, hashes, and sanitized source information.
+     9. Preserve downloaded source files unchanged and never execute downloaded SQL or scripts.
    - **Human approval required:** `false`
    - **Human approver role:** `null`
    - **Expected checkpoint:** Every applicable source is safely stored and represented in the download manifest.
@@ -179,7 +183,7 @@ the paths named by the applicable checklist item.
 
 5. **Checklist item:** Synthesize the consolidated ticket context
    - **Checklist item ID:** `synthesize-ticket-context`
-   - **Objective:** Produce a provenance-aware context that separates business intent, implementation details, evidence, QA assets, metadata, conflicts, and unresolved decisions.
+   - **Objective:** Produce a durable, provenance-aware context packet that separates business intent, implementation details, evidence, QA assets, metadata, conflicts, and unresolved decisions.
    - **Applicability:** `required`
    - **Applicability rule:** Run after Jira retrieval and all applicable input acquisition attempts are complete.
    - **Checklist status:** `not_started`
@@ -191,7 +195,7 @@ the paths named by the applicable checklist item.
      1. Read only the supporting files required to establish QA context.
      2. Update `ticket_context.md` with separate sections for the Jira requirement, technical implementation specification, developer unit-test evidence, QA package inventory, and authorized database metadata when used.
      3. Record provenance for important facts by naming the source role and source artifact.
-     4. List unresolved questions, contradictions, assumptions requiring approval, and missing technical values.
+     4. List unresolved questions, contradictions, assumptions requiring approval, missing technical values, and attachment checks blocked by unavailable bytes.
      5. Do not silently resolve conflicting sources. Identify the conflict and explain its impact on QA scope or execution targets.
      6. Do not invent authentication profiles, allowed hosts, repositories, refs, package paths, environments, servers, databases, schemas, tables, tokens, or expected outcomes.
    - **Human approval required:** `false`
@@ -213,11 +217,11 @@ the paths named by the applicable checklist item.
    - **Required Agent Skill:** `null`
    - **Permitted tools or systems:** `[user_conversation, repository_filesystem]`
    - **Ordered agent actions:**
-     1. Present the consolidated context and clearly identify information that was retrieved, inferred, contradictory, or unresolved.
-     2. Request explicit approval of the interpreted requirement, environment, server or connection profile, source and target objects, QA scope, package and script selection, and every remaining assumption.
+     1. Ensure `ticket_context.md` contains the complete context packet, source status, unresolved facts, proposed QA scope, and excluded or blocked checks.
+     2. Present a compact summary and ask exactly `Approve context.`
      3. Do not treat silence, earlier ticket approval, or artifact existence as approval.
-     4. Record the decision, timestamp, checkpoint, approver identity or role, and notes in the approval log.
-     5. If rejected or conditionally approved, update the context and repeat this checkpoint before proceeding.
+     4. Record the decision, timestamp, checkpoint, approver identity or role, detailed approved scope, and notes in the approval log.
+     5. If rejected or conditionally approved, update the context packet and repeat this checkpoint before proceeding.
    - **Human approval required:** `true`
    - **Human approver role:** `authorized_qa_or_project_representative`
    - **Expected checkpoint:** The consolidated context and action-critical QA scope are explicitly approved.
@@ -305,15 +309,17 @@ the paths named by the applicable checklist item.
    - **Applicability rule:** Apply when one or more database statements are proposed for execution.
    - **Checklist status:** `not_started`
    - **Entry conditions:** `[prepare-qa-plan_completed, prepare-controlled-sql_completed, executable_checks_proposed]`
-   - **Required inputs:** `[final_qa_plan, generated_queries, approved_connection_profile, statement_permission_classifications]`
+   - **Required inputs:** `[final_qa_plan, generated_queries, configured_database_target_metadata, statement_permission_classifications]`
    - **Required Agent Skill:** `null`
-   - **Permitted tools or systems:** `[user_conversation, repository_filesystem]`
+   - **Permitted tools or systems:** `[user_conversation, repository_filesystem, database_mcp_profile_discovery]`
    - **Ordered agent actions:**
-     1. Present the final QA plan, exact statements, statement order, approved profile and environment, expected outcomes, and stop conditions.
-     2. Request explicit database-execution approval separately from context approval.
-     3. Request separate explicit authorization for every write statement, DDL, DML, or environment-changing setup command.
-     4. Record approval or rejection with the exact approved scope in the approval log.
-     5. Do not broaden approval from one statement, environment, profile, or permission class to another.
+     1. List database profiles through secret-safe MCP discovery and match the configured targets by database type, database name, and other available non-secret metadata; the active profile is not an automatic selection.
+     2. Stop as a blocker when a target has zero or multiple matches. Do not ask the user to guess a discoverable profile name.
+     3. Write the final plan summary, exact profile-to-target mappings, statement IDs and hashes, execution order, expected outcomes, permission classifications, unresolved facts, stop conditions, and excluded operations to the approval log and generated SQL artifacts.
+     4. Present that exact read-only scope and ask exactly `Approve the proposed read-only execution scope. No DDL or DML.`
+     5. Request separate explicit authorization for every write statement, DDL, DML, or environment-changing setup command.
+     6. Record approval or rejection with the exact approved scope in the approval log.
+     7. Do not broaden approval from one statement, environment, profile, or permission class to another.
    - **Human approval required:** `true`
    - **Human approver role:** `authorized_database_or_qa_representative`
    - **Expected checkpoint:** Exact statements and execution boundaries have explicit recorded approval.
@@ -328,20 +334,22 @@ the paths named by the applicable checklist item.
    - **Applicability:** `conditional`
    - **Applicability rule:** Apply only after the execution-approval checkpoint is completed for at least one exact statement.
    - **Checklist status:** `not_started`
-   - **Entry conditions:** `[approve-database-execution_completed, approved_database_profile_available, connection_validated, sql_guard_available]`
+   - **Entry conditions:** `[approve-database-execution_completed, approved_database_profile_available, sql_guard_available]`
    - **Required inputs:** `[approved_statements, approved_execution_order, approved_profile, approved_environment, expected_outcomes]`
    - **Required Agent Skill:** `null`
    - **Permitted tools or systems:** `[existing_database_mcp, existing_sql_guard, repository_filesystem]`
    - **Ordered agent actions:**
-     1. Confirm the active profile and environment match the recorded execution approval.
-     2. Execute exactly one approved statement per database MCP request.
-     3. Capture the check ID, exact normalized statement, result, row count, duration, status, and secret-safe error information.
-     4. Compare the result with its approved expected outcome without changing the query automatically.
-     5. Stop on policy rejection, profile or environment mismatch, unresolved token, unexpected write behavior, contradiction, or unapproved statement.
-     6. Do not automatically retry a destructive action and do not execute arbitrary SQL from downloaded packages.
-     7. Record skipped, blocked, and failed checks explicitly instead of presenting them as successful.
-   - **Human approval required:** `true`
-   - **Human approver role:** `authorized_database_or_qa_representative`
+     1. Switch only to a profile and target included in the recorded execution approval, satisfying any database MCP confirmation contract.
+     2. Validate the connection after switching and confirm its safe database metadata matches the approved mapping.
+     3. Confirm the statement ID, hash, and permission class still match the approved scope.
+     4. Execute exactly one approved statement per database MCP request.
+     5. Capture the check ID, exact normalized statement, result, row count, duration, status, and secret-safe error information.
+     6. Compare the result with its approved expected outcome without changing the query automatically.
+     7. Stop on connection failure, policy rejection, profile or environment mismatch, changed statement hash, unresolved token, unexpected write behavior, contradiction, or unapproved statement.
+     8. Do not automatically retry a destructive action and do not execute arbitrary SQL from downloaded packages.
+     9. Record skipped, blocked, and failed checks explicitly instead of presenting them as successful.
+   - **Human approval required:** `false`
+   - **Human approver role:** `null`
    - **Expected checkpoint:** Every attempted database check was approved, individually executed, and normalized into ticket evidence.
    - **Completion evidence:** `[mcp_execution_records, statement_result_mapping, stop_conditions_respected]`
    - **Generated or updated artifact:** `ticket_runs/<ticket-id>/generated/execution_results/execution_result.json`
@@ -375,9 +383,11 @@ the paths named by the applicable checklist item.
 
 ## Error Handling / Fallbacks
 
+- **Preflight blocker:** Stop before workspace initialization and create no ticket runtime artifacts. Authentication, configuration, connector, dependency, routing, and ambiguous-profile failures are not approval checkpoints.
 - **Routing mismatch:** Stop immediately when client, project type, or workflow variant does not match. Resume only after an authorized user identifies an exact approved workflow.
 - **Jira unavailable or unauthorized:** Do not substitute remembered, cached, or invented ticket content. Preserve the initialized workspace and resume after authorized Atlassian access is restored.
 - **Credential-protected input unavailable:** Do not request credentials. Ask an authorized user to download the source through their own approved session and place it in the ticket `downloads/` directory.
+- **Protected attachment mirror unavailable:** Treat the attachment as unresolved until an authorized bootstrap or manual Jira download supplies actual bytes and their type, size, and SHA-256 have been validated. Do not claim that a configured mirror path is operational evidence.
 - **Missing retrieval detail:** Stop when an allowed host, expected extension, authentication profile, repository, ref, or exact package path is missing. Resume only after an authorized source supplies the exact value.
 - **Unsafe or invalid download:** Preserve any prior source files, record the safe downloader error, and do not bypass host, format, size, archive, or overwrite controls.
 - **Conflicting sources:** Record both claims and their provenance. Stop when the conflict changes QA scope, environment, object selection, execution order, or expected outcome. Resume after an authorized decision is recorded.
@@ -397,6 +407,7 @@ the paths named by the applicable checklist item.
 - Generated workflow artifacts belong under `ticket_runs/<ticket-id>/generated/`.
 - Workflow and execution logs belong only under `logs/<ticket-id>.log`.
 - Final approved reports belong only under `output/<ticket-id>/`.
+- During ticket execution, writes are limited to `ticket_runs/<ticket-id>/**`, `logs/<ticket-id>.log`, and `output/<ticket-id>/**`; reusable project files remain read-only.
 - Credentials, tokens, passwords, cookies, private keys, signed query strings, and connection secrets must never be stored in commands, ticket artifacts, logs, manifests, reports, or prompts.
 - The workflow must use `modules.download_ticket_inputs` for declared direct-file and GitHub-package acquisition instead of implementing an alternate downloader.
 - Downloaded SQL, scripts, documents, and archives are untrusted inputs. They must not be executed automatically.
@@ -406,3 +417,4 @@ the paths named by the applicable checklist item.
 - Read-only validation is preferred. Every write, DDL, DML, or environment-changing action requires explicit authorization.
 - The context-approval and execution-approval checkpoints are separate and cannot approve each other implicitly.
 - No live action may continue when an action-critical value is missing, contradictory, unresolved, or outside recorded approval.
+- Resume from route-selected configuration, ticket context, source manifests, approval logs, the QA plan, generated SQL, execution results, and the workflow log. Chat memory and artifact existence alone do not prove approval.

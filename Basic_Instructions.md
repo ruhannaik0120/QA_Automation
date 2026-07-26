@@ -110,9 +110,23 @@ Do not place external source documents, shared logs, or final reports in `genera
 - Write final approved reports only under `output/<ticket-id>/`.
 - Do not create `logs/` or `output/` inside a ticket directory.
 
+## AI-Orchestrated Preflight
+
+Before workspace initialization, the AI orchestration client must perform a read-only preflight. This is workflow enforcement performed by the AI client, not a Python preflight module.
+
+The preflight must validate the supplied ticket key; resolve an authorized Jira site URL or cloud ID; retrieve the exact issue directly; reuse that resolved Jira identifier; resolve authoritative routing metadata; select and validate the exact eligible workflow; verify required non-secret route configuration and report dependencies; and, when database work is declared, identify candidate database profiles through secret-safe metadata. Broad Atlassian search does not replace direct issue retrieval, and the active database profile is not an automatic selection.
+
+Authentication, configuration, connector, dependency, routing, and profile-ambiguity failures are operational blockers, not approval checkpoints. When blocked, preflight must create no path under `ticket_runs/`, `logs/`, or `output/` and must report the smallest safe corrective action.
+
+## Runtime And Resume Boundaries
+
+During ticket execution, writes are limited to `ticket_runs/<ticket-id>/**`, `logs/<ticket-id>.log`, and `output/<ticket-id>/**`. Reusable instructions, configuration, workflows, Agent Skills, tests, documentation, production modules, and MCP code remain read-only unless the user separately requests framework development.
+
+A fresh AI chat must reconstruct progress from routing configuration, ticket context, source manifests, approval logs, the QA plan, generated SQL, execution results, and the workflow log. Chat memory and artifact existence alone do not prove approval; continue only from an explicitly recorded checkpoint decision and verified execution scope.
+
 ## Selecting A Client Workflow
 
-Before performing client-specific QA work:
+After the AI-orchestrated preflight has directly retrieved the issue and resolved routing, before performing client-specific QA work:
 
 1. Determine `client_name` from authoritative ticket or authorized user context.
 2. Extract `project_type` from the Jira ticket title or other authoritative ticket metadata.
