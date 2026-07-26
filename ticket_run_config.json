@@ -24,6 +24,9 @@
       "approved_by",
       "approved_on"
     ],
+    "approval_metadata_exempt_workflows": [
+      "skills/workflows/ruhan_poc_qaworkflow.md"
+    ],
     "agent_skills_root": "skills/agent_skills",
     "skill_instruction_filename": "SKILL.md"
   },

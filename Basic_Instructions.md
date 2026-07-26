@@ -6,7 +6,7 @@ This is the first project file an AI agent must read when starting work, resumin
 
 This file defines the agent's role, the repository structure, permanent safety boundaries, and how to select the correct client/project QA workflow. It does not define one universal QA procedure. Exact workflow steps belong in approved files under `skills/workflows/` because different clients and project types may use different ticket types, approvals, systems, evidence, and reports.
 
-If an exact approved workflow cannot be identified or does not cover the request, the agent must stop, explain what is missing or ambiguous, and request clarification from an authorized user. The agent must never invent missing workflow or fallback behavior.
+If an exact eligible workflow cannot be identified or does not cover the request, the agent must stop, explain what is missing or ambiguous, and request clarification from an authorized user. Eligibility requires the normal approval metadata or an exact central approval-metadata exemption. The agent must never invent missing workflow or fallback behavior.
 
 ## Agent Role
 
@@ -119,10 +119,13 @@ Before performing client-specific QA work:
 3. Determine `workflow_variant` only when an additional variant is explicitly required.
 4. Locate the workflow using the filename convention below.
 5. Read the workflow's YAML frontmatter.
-6. Confirm that `document_type` is exactly `qa_workflow`, `client_name` matches the authoritative client, `project_type` matches the ticket project type, `workflow_variant` matches when required, and both `approved_by` and `approved_on` are not `null`.
-7. Read the complete workflow, state which exact workflow was selected and why, and use only that exact matching workflow unless an authorized user or designated workflow owner explicitly changes it.
+6. Confirm that `document_type` is exactly `qa_workflow`, `client_name` matches the authoritative client, `project_type` matches the ticket project type, and `workflow_variant` matches when required.
+7. Read `workflow_routing.approval_metadata_exempt_workflows` from `ticket_run_config.json`. When the exact selected workflow path is not listed, confirm that both `approved_by` and `approved_on` are not `null`. When the exact path is listed, those administrative metadata fields may remain `null`.
+8. Read the complete workflow, state which exact workflow was selected and why, and use only that exact matching workflow unless an authorized user or designated workflow owner explicitly changes it.
 
-Approved workflow filenames use:
+An entry in `approval_metadata_exempt_workflows` exempts only the named workflow from non-null administrative approval metadata. It does not approve ticket context, plans, SQL, write operations, database profile changes, execution, reports, or any other workflow output, and it must never bypass a human approval checkpoint defined by the workflow or MCP tool contract. Workflows not explicitly listed remain subject to the normal non-null `approved_by` and `approved_on` requirement.
+
+Active workflow filenames use:
 
 ```text
 skills/workflows/<client-name>_<project-type>_qaworkflow.md
@@ -135,7 +138,7 @@ The reusable file `skills/workflows/clientname_project_qaworkflow.md` has `docum
 
 Do not select a workflow merely because its filename or contents appear similar. Stop, explain what is missing or ambiguous, and request clarification from an authorized user when:
 
-- no exact approved workflow exists;
+- no exact workflow with the required approval metadata or an explicit approval-metadata exemption exists;
 - multiple workflows match;
 - routing metadata is missing;
 - the ticket type is unsupported;
@@ -236,7 +239,7 @@ If the agent loses all conversational context:
 
 ## Changing Agent Behavior
 
-Project-wide folder relationships, safety boundaries, and workflow-selection behavior belong in this file. Client/project-specific behavior belongs in approved workflow files under `skills/workflows/`.
+Project-wide folder relationships, safety boundaries, and workflow-selection behavior belong in this file. Client/project-specific behavior belongs in eligible workflow files under `skills/workflows/`.
 
 When requirements change:
 

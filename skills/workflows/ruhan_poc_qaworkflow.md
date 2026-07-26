@@ -234,11 +234,15 @@ the paths named by the applicable checklist item.
    - **Checklist status:** `not_started`
    - **Entry conditions:** `[approve-ticket-context_completed]`
    - **Required inputs:** `[approved_ticket_context, approved_qa_scope, approved_environment_and_objects]`
-   - **Required Agent Skill:** `null`
+   - **Required Agent Skill:** `qa-test-planner`
    - **Permitted tools or systems:** `[repository_filesystem, authorized_metadata_tools_when_required]`
    - **Ordered agent actions:**
-     1. Define validation objectives, prerequisites, approved environments, and approved source and target objects.
-     2. Evaluate every category in the following minimum QA coverage matrix. For each category, mark it `applicable` and define the required checks, expected outcomes, and evidence, or mark it `not_applicable` and record the reason from authoritative context:
+     1. Resolve the exact Agent Skill key `qa-test-planner`.
+     2. Confirm that `skills/agent_skills/qa-test-planner/` exists and that its folder name exactly matches the required skill key.
+     3. Read `skills/agent_skills/qa-test-planner/SKILL.md` completely, confirm that its metadata name exactly matches `qa-test-planner`, and read only the supporting reference files that `SKILL.md` requires for this planning task.
+     4. Provide the skill with the approved ticket context, approved QA scope, approved environments, and approved source and target objects.
+     5. Use the skill only for QA planning. The skill must not execute or prepare SQL, call Jira, databases, GitHub, or other live systems, bypass workflow approval gates, approve its own output, or invent profiles, servers, databases, schemas, tables, expected outcomes, credentials, or approvals. SQL preparation remains in checklist item 8, and database execution remains after the separate execution-approval checkpoint.
+     6. Require the skill to define validation objectives and prerequisites and evaluate every category in the following minimum QA coverage matrix:
         - database, schema, and object existence;
         - column names, data types, lengths, precision, scale, and nullability;
         - source and target row counts;
@@ -254,9 +258,12 @@ the paths named by the applicable checklist item.
         - boundary and negative cases;
         - performance checks only when required by authoritative context; and
         - rollback and recovery behaviour.
-     3. Add any ticket-specific setup, pre-QA, deployment, data-quality, or other validation required by the approved context beyond the minimum matrix.
-     4. Define expected outcomes, evidence to capture, stop conditions, and the responsible approval point for any conditional operation.
-     5. Confirm that every minimum matrix category has applicable checks or a documented non-applicable reason and that no omitted category is left unexplained.
+     7. Require every minimum matrix category to be marked `applicable`, with checks, expected outcomes, and evidence; `not_applicable`, with an authoritative reason; or `blocked`, with the missing or conflicting information.
+     8. Add any ticket-specific setup, pre-QA, deployment, data-quality, or other validation required by the approved context beyond the minimum matrix.
+     9. Define expected outcomes, evidence to capture, stop conditions, and the responsible approval point for any conditional operation.
+     10. Confirm that every minimum matrix category has one of the required statuses and that no omitted category is left unexplained.
+     11. Save the completed plan to `ticket_runs/<ticket-id>/generated/qa_plan.md`.
+     12. Return control to this workflow checklist after the QA-planning task is complete.
    - **Human approval required:** `false`
    - **Human approver role:** `null`
    - **Expected checkpoint:** The plan covers the approved QA scope with explicit outcomes, evidence, and stop conditions.

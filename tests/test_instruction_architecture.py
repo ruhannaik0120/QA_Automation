@@ -13,6 +13,8 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = REPOSITORY_ROOT / "ticket_run_config.json"
+POC_WORKFLOW_RELATIVE_PATH = "skills/workflows/ruhan_poc_qaworkflow.md"
+POC_WORKFLOW_PATH = REPOSITORY_ROOT / POC_WORKFLOW_RELATIVE_PATH
 CONTRACT_PATHS = (
     REPOSITORY_ROOT / "Basic_Instructions.md",
     REPOSITORY_ROOT / "docs" / "prd.md",
@@ -31,6 +33,7 @@ EXPECTED_WORKFLOW_ROUTING = {
     "optional_routing_fields": ["workflow_variant"],
     "active_workflow_document_type": "qa_workflow",
     "required_non_null_approval_fields": ["approved_by", "approved_on"],
+    "approval_metadata_exempt_workflows": [POC_WORKFLOW_RELATIVE_PATH],
     "agent_skills_root": "skills/agent_skills",
     "skill_instruction_filename": "SKILL.md",
 }
@@ -80,6 +83,24 @@ def test_configured_instruction_paths_exist():
     assert (REPOSITORY_ROOT / routing["agent_skills_root"]).is_dir()
     assert routing["skill_instruction_filename"] == "SKILL.md"
 # endregion Function: Test configured instruction paths
+
+
+# region Function: Test narrow POC approval-metadata exemption
+def test_poc_approval_metadata_exemption_is_narrow_and_valid():
+    """Allow null approval metadata only for the exact configured POC workflow."""
+
+    routing = _load_config()["workflow_routing"]
+    exempt_workflows = routing["approval_metadata_exempt_workflows"]
+
+    assert exempt_workflows == [POC_WORKFLOW_RELATIVE_PATH]
+    assert POC_WORKFLOW_PATH.is_file()
+
+    workflow = POC_WORKFLOW_PATH.read_text(encoding="utf-8")
+    frontmatter = workflow.split("---", 2)[1]
+    assert 'document_type: "qa_workflow"' in frontmatter
+    assert "approved_by: null" in frontmatter
+    assert "approved_on: null" in frontmatter
+# endregion Function: Test narrow POC approval-metadata exemption
 
 
 # region Function: Test retired routing references
