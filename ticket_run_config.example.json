@@ -1,0 +1,23 @@
+{
+  "configuration_approval": {
+    "approved_by": null,
+    "approved_on": null
+  },
+  "routing": {
+    "client_name": null,
+    "project_type": null,
+    "workflow_variant": null
+  },
+  "jira": {
+    "site_url": null,
+    "cloud_id": null,
+    "retrieval_mode": "direct_issue",
+    "issue_key": null
+  },
+  "input_sources": [],
+  "database_targets": [],
+  "workflow_approval": {
+    "approval_metadata_exempt_workflows": []
+  },
+  "required_report_dependencies": []
+}

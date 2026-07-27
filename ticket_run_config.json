@@ -7,6 +7,21 @@
     "downloads": "downloads",
     "generated": "generated"
   },
+  "input_acquisition": {
+    "mode_source": "selected_workflow",
+    "default_mode": null,
+    "supported_modes": [
+      "manual",
+      "automatic"
+    ],
+    "workflow_must_declare_mode": true,
+    "automatic_mode_requirements": [
+      "explicit_workflow_permission",
+      "required_acquisition_approvals_satisfied",
+      "authentication_configured",
+      "downloader_safety_controls_active"
+    ]
+  },
   "workflow_routing": {
     "workflows_root": "skills/workflows",
     "workflow_template": "skills/workflows/clientname_project_qaworkflow.md",
@@ -24,69 +39,105 @@
       "approved_by",
       "approved_on"
     ],
-    "approval_metadata_exempt_workflows": [
-      "skills/workflows/ruhan_poc_qaworkflow.md"
-    ],
+    "approval_metadata_exempt_workflows": [],
     "agent_skills_root": "skills/agent_skills",
     "skill_instruction_filename": "SKILL.md"
   },
-  "route_selected_configuration": [
-    {
-      "routing": {
-        "client_name": "ruhan",
-        "project_type": "poc",
-        "workflow_variant": null
-      },
-      "jira": {
-        "site_url": "https://ruhannaik444.atlassian.net",
-        "cloud_id": "51cd9d76-2810-472a-8b50-b2412c213a7f",
-        "retrieval_mode": "direct_issue"
-      },
-      "input_repository": {
-        "repository": "rnnaik1102-droid/QA_Automation_POC_Inputs",
-        "ref": "main",
-        "package_path": "qa_packages/flight_delay_poc",
-        "authentication_profile": "qa-poc-github",
-        "credential_environment_variable": "QA_POC_GITHUB_TOKEN",
-        "allowed_extensions": [
-          ".md",
-          ".json",
-          ".sql"
-        ]
-      },
-      "protected_attachment_mirrors": [
-        {
-          "source_role": "technical_implementation_specification",
-          "path": "qa_packages/flight_delay_poc/supporting_documents/Flight_Delay_Request_Deployment_Document.docx",
-          "availability": "authorized_bootstrap_and_validation_required"
-        },
-        {
-          "source_role": "developer_unit_test_evidence",
-          "path": "qa_packages/flight_delay_poc/supporting_documents/Flight_Delay_Developer_Unit_Test_Results.xlsx",
-          "availability": "authorized_bootstrap_and_validation_required"
-        }
+  "run_specific_configuration": {
+    "example_path": "ticket_run_config.example.json",
+    "local_override_path": "ticket_run_config.local.json",
+    "local_override_must_be_gitignored": true,
+    "secrets_allowed": false,
+    "required_non_null_approval_fields": [
+      "approved_by",
+      "approved_on"
+    ]
+  },
+  "runtime_resolution": {
+    "precedence": [
+      "authoritative_jira_ticket_context",
+      "selected_approved_workflow",
+      "explicit_run_specific_configuration",
+      "authorized_user_clarification",
+      "never_guess"
+    ],
+    "lower_precedence_values_may_only_fill_missing_fields": true,
+    "conflict_behavior": "block_and_request_authorized_clarification",
+    "missing_required_behavior": "block_before_workspace_initialization"
+  },
+  "run_configuration_schema": {
+    "routing": {
+      "required_fields": [
+        "client_name",
+        "project_type"
       ],
-      "database_targets": [
-        {
-          "db_type": "postgresql",
-          "database": "flight_delay_poc",
-          "source_object": "raw.flights",
-          "target_object": "analytics.flight_performance",
-          "qa_schema": "qa"
-        },
-        {
-          "db_type": "snowflake",
-          "database": "FLIGHT_DELAY_POC",
-          "source_object": "RAW.FLIGHTS",
-          "target_object": "ANALYTICS.FLIGHT_PERFORMANCE",
-          "qa_schema": "QA"
-        }
-      ],
-      "required_report_dependencies": [
-        "openpyxl"
+      "optional_fields": [
+        "workflow_variant"
       ]
+    },
+    "jira": {
+      "required_fields": [
+        "retrieval_mode",
+        "issue_key"
+      ],
+      "at_least_one_required_field": [
+        "site_url",
+        "cloud_id"
+      ],
+      "allowed_retrieval_modes": [
+        "direct_issue"
+      ]
+    },
+    "input_sources": {
+      "type": "array",
+      "supported_source_types": [
+        "direct_file",
+        "github_package"
+      ],
+      "common_fields": [
+        "source_type",
+        "authentication_profile",
+        "credential_environment_variable",
+        "allowed_extensions"
+      ],
+      "direct_file_required_fields": [
+        "source_type",
+        "url",
+        "allowed_extensions"
+      ],
+      "github_package_required_fields": [
+        "source_type",
+        "repository",
+        "ref",
+        "package_path",
+        "allowed_extensions"
+      ]
+    },
+    "database_targets": {
+      "type": "array",
+      "required_fields_when_declared": [
+        "db_type",
+        "database",
+        "schema",
+        "source_object",
+        "target_object"
+      ],
+      "optional_fields": [
+        "connection_profile"
+      ],
+      "profile_selection": "explicit_or_unique_secret_safe_metadata_match_only"
+    },
+    "workflow_approval": {
+      "optional_fields": [
+        "approval_metadata_exempt_workflows"
+      ],
+      "default_approval_metadata_exempt_workflows": []
+    },
+    "required_report_dependencies": {
+      "type": "array",
+      "default": []
     }
-  ],
+  },
   "stable_artifact_paths": {
     "ticket_context": "generated/ticket_context.md",
     "qa_plan": "generated/qa_plan.md",
@@ -110,12 +161,12 @@
     "excel",
     "both"
   ],
-  "approval_checkpoint_scope": "Baseline controls for the tested database-validation workflow. An approved client workflow may add stricter or client-specific checkpoints but must not bypass security or MCP confirmations.",
+  "approval_checkpoint_scope": "Baseline controls for database-validation workflows. An approved client workflow may add stricter or client-specific checkpoints but must not bypass security or MCP confirmations.",
   "human_approval_checkpoints": [
     {
       "id": "ticket_context_complete",
       "required_before": "qa_planning",
-      "description": "The user confirms that the combined Jira context and relevant local downloaded sources are complete enough for QA planning."
+      "description": "The user confirms that the combined Jira context and relevant approved local inputs are complete enough for QA planning."
     },
     {
       "id": "database_execution",
