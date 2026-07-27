@@ -1,0 +1,301 @@
+{
+  "schema_version": "1.0",
+  "ticket_id": "KAN-7",
+  "generated_at_utc": "2026-07-26T17:06:00Z",
+  "execution_scope": {
+    "approval_checkpoint": "database_execution",
+    "approval_timestamp_utc": "2026-07-26T17:01:59.3945042Z",
+    "permission_scope": "read-only",
+    "ddl_dml_authorized": false,
+    "source_context": "Jira business request plus validated GitHub QA package only",
+    "unreviewed_sources": [
+      "Flight_Delay_Request_Deployment_Document.docx",
+      "Flight_Delay_Developer_Unit_Test_Results.xlsx"
+    ]
+  },
+  "summary": {
+    "status": "validation_passed",
+    "total_queries": 10,
+    "passed": 10,
+    "failed": 0,
+    "execution_failed": 0,
+    "blocked": 2,
+    "not_evaluated": 0,
+    "postgres_profile": "postgres-personal",
+    "snowflake_profile": "snowflake-personal",
+    "cross_platform_result": "PostgreSQL and Snowflake matched for all comparable metrics captured by the approved read-only checks.",
+    "unresolved_or_excluded": "DOCX/XLSX attachments were not reviewed; scratch write tests were excluded from read-only scope."
+  },
+  "query_results": [
+    {
+      "check_id": "PG-RO-001",
+      "request_id": "8702bfe2d25c",
+      "profile": "postgres-personal",
+      "environment": "POSTGRESQL",
+      "database": "flight_delay_poc",
+      "permission_class": "read-only",
+      "statement_sha256": "5de7850d64b05dfc678d4b1564bc44814d0ed070e2e1a14657a2896ca4bece1f",
+      "execution_time_ms": 55,
+      "row_count": 1,
+      "rows_affected": 1,
+      "validation_status": "passed",
+      "expected": "Database is flight_delay_poc; source and target objects exist.",
+      "actual": "Database was flight_delay_poc; source_flights_exists=true; target_exists=true.",
+      "columns": ["database_name", "source_flights_exists", "target_exists"],
+      "rows": [
+        {
+          "database_name": "flight_delay_poc",
+          "source_flights_exists": true,
+          "target_exists": true
+        }
+      ]
+    },
+    {
+      "check_id": "PG-RO-002",
+      "request_id": "861de12bbf48",
+      "profile": "postgres-personal",
+      "environment": "POSTGRESQL",
+      "database": "flight_delay_poc",
+      "permission_class": "read-only",
+      "statement_sha256": "19d533ce076402efb829547738154343eb76dd5a2090c3921679a1e203113ef5",
+      "execution_time_ms": 1588,
+      "row_count": 1,
+      "rows_affected": 1,
+      "validation_status": "passed",
+      "expected": "raw_flight_rows equals 5819079; blank-field counts captured.",
+      "actual": "raw_flight_rows=5819079; all checked blank-field counts were 0.",
+      "columns": ["raw_flight_rows", "blank_year_rows", "blank_airline_rows", "blank_origin_rows", "blank_destination_rows"],
+      "rows": [
+        {
+          "raw_flight_rows": 5819079,
+          "blank_year_rows": 0,
+          "blank_airline_rows": 0,
+          "blank_origin_rows": 0,
+          "blank_destination_rows": 0
+        }
+      ]
+    },
+    {
+      "check_id": "PG-RO-003",
+      "request_id": "9e1518d9aa98",
+      "profile": "postgres-personal",
+      "environment": "POSTGRESQL",
+      "database": "flight_delay_poc",
+      "permission_class": "read-only",
+      "statement_sha256": "2420948f8909040d603c8c09e24e38609862231a8b17f4d0074ff9bbaddfe2c9",
+      "execution_time_ms": 3213,
+      "row_count": 1,
+      "rows_affected": 1,
+      "validation_status": "passed",
+      "expected": "Analytics classification, lookup, and data-quality metrics captured.",
+      "actual": "analytics_rows=5819079; cancelled=89884; diverted=15187; on_time=4690510; data_quality_issue=486165; missing airline lookup=0; missing origin lookup=486165; missing destination lookup=486165.",
+      "columns": ["analytics_rows", "cancelled_rows", "diverted_rows", "on_time_rows", "data_quality_issue_rows", "missing_airline_lookup_rows", "missing_origin_lookup_rows", "missing_destination_lookup_rows"],
+      "rows": [
+        {
+          "analytics_rows": 5819079,
+          "cancelled_rows": 89884,
+          "diverted_rows": 15187,
+          "on_time_rows": 4690510,
+          "data_quality_issue_rows": 486165,
+          "missing_airline_lookup_rows": 0,
+          "missing_origin_lookup_rows": 486165,
+          "missing_destination_lookup_rows": 486165
+        }
+      ]
+    },
+    {
+      "check_id": "PG-RO-004",
+      "request_id": "252e3d0b1895",
+      "profile": "postgres-personal",
+      "environment": "POSTGRESQL",
+      "database": "flight_delay_poc",
+      "permission_class": "read-only",
+      "statement_sha256": "09c4e64eb43076f293f97db131795f62c5f2250ed11072356a998f8421be79e7",
+      "execution_time_ms": 1853,
+      "row_count": 1,
+      "rows_affected": 1,
+      "validation_status": "passed",
+      "expected": "row_difference equals 0.",
+      "actual": "raw_rows=5819079; analytics_rows=5819079; row_difference=0.",
+      "columns": ["raw_rows", "analytics_rows", "row_difference"],
+      "rows": [
+        {
+          "raw_rows": 5819079,
+          "analytics_rows": 5819079,
+          "row_difference": 0
+        }
+      ]
+    },
+    {
+      "check_id": "PG-RO-005",
+      "request_id": "95a4aa277225",
+      "profile": "postgres-personal",
+      "environment": "POSTGRESQL",
+      "database": "flight_delay_poc",
+      "permission_class": "read-only",
+      "statement_sha256": "04c60a2f0da289f104b660cbc776c807f51f7c80ca0cd094339f5b1efdad66f0",
+      "execution_time_ms": 40920,
+      "row_count": 1,
+      "rows_affected": 1,
+      "validation_status": "passed",
+      "expected": "null_flight_keys equals 0; duplicate and rule exception counts captured.",
+      "actual": "null_flight_keys=0; duplicate_flight_keys=0; cancelled_without_reason=0; same_origin_destination=0.",
+      "columns": ["null_flight_keys", "duplicate_flight_keys", "cancelled_without_reason", "same_origin_destination"],
+      "rows": [
+        {
+          "null_flight_keys": 0,
+          "duplicate_flight_keys": 0,
+          "cancelled_without_reason": 0,
+          "same_origin_destination": 0
+        }
+      ]
+    },
+    {
+      "check_id": "SF-RO-001",
+      "request_id": "fce46e612908",
+      "profile": "snowflake-personal",
+      "environment": "SNOWFLAKE",
+      "database": "FLIGHT_DELAY_POC",
+      "permission_class": "read-only",
+      "statement_sha256": "5f21504197ed5a69c6ed136d01ee9ff04a4a459bdbd06af2933f1f5252a1a00f",
+      "execution_time_ms": 3626,
+      "row_count": 1,
+      "rows_affected": 1,
+      "validation_status": "passed",
+      "expected": "Database is FLIGHT_DELAY_POC; source and target objects exist.",
+      "actual": "DATABASE_NAME=FLIGHT_DELAY_POC; SOURCE_FLIGHTS_EXISTS=1; TARGET_EXISTS=1.",
+      "columns": ["DATABASE_NAME", "SOURCE_FLIGHTS_EXISTS", "TARGET_EXISTS"],
+      "rows": [
+        {
+          "DATABASE_NAME": "FLIGHT_DELAY_POC",
+          "SOURCE_FLIGHTS_EXISTS": 1,
+          "TARGET_EXISTS": 1
+        }
+      ]
+    },
+    {
+      "check_id": "SF-RO-002",
+      "request_id": "6f56e4b7d951",
+      "profile": "snowflake-personal",
+      "environment": "SNOWFLAKE",
+      "database": "FLIGHT_DELAY_POC",
+      "permission_class": "read-only",
+      "statement_sha256": "9e75e6ad9cc34711864c168ca1f8fcde7d5bf1f750dc54e662c11570687d9758",
+      "execution_time_ms": 3820,
+      "row_count": 1,
+      "rows_affected": 1,
+      "validation_status": "passed",
+      "expected": "RAW_FLIGHT_ROWS equals 5819079; blank-field counts captured.",
+      "actual": "RAW_FLIGHT_ROWS=5819079; all checked blank-field counts were 0.",
+      "columns": ["RAW_FLIGHT_ROWS", "BLANK_YEAR_ROWS", "BLANK_AIRLINE_ROWS", "BLANK_ORIGIN_ROWS", "BLANK_DESTINATION_ROWS"],
+      "rows": [
+        {
+          "RAW_FLIGHT_ROWS": 5819079,
+          "BLANK_YEAR_ROWS": 0,
+          "BLANK_AIRLINE_ROWS": 0,
+          "BLANK_ORIGIN_ROWS": 0,
+          "BLANK_DESTINATION_ROWS": 0
+        }
+      ]
+    },
+    {
+      "check_id": "SF-RO-003",
+      "request_id": "ee394a3d8d9c",
+      "profile": "snowflake-personal",
+      "environment": "SNOWFLAKE",
+      "database": "FLIGHT_DELAY_POC",
+      "permission_class": "read-only",
+      "statement_sha256": "5e64767de93fdf08820c29bc755258d794a2bc97cd5056cc9208e9ae31f86455",
+      "execution_time_ms": 3306,
+      "row_count": 1,
+      "rows_affected": 1,
+      "validation_status": "passed",
+      "expected": "Analytics classification, lookup, and data-quality metrics captured.",
+      "actual": "ANALYTICS_ROWS=5819079; CANCELLED_ROWS=89884; DIVERTED_ROWS=15187; ON_TIME_ROWS=4690510; DATA_QUALITY_ISSUE_ROWS=486165; MISSING_AIRLINE_LOOKUP_ROWS=0; MISSING_ORIGIN_LOOKUP_ROWS=486165; MISSING_DESTINATION_LOOKUP_ROWS=486165.",
+      "columns": ["ANALYTICS_ROWS", "CANCELLED_ROWS", "DIVERTED_ROWS", "ON_TIME_ROWS", "DATA_QUALITY_ISSUE_ROWS", "MISSING_AIRLINE_LOOKUP_ROWS", "MISSING_ORIGIN_LOOKUP_ROWS", "MISSING_DESTINATION_LOOKUP_ROWS"],
+      "rows": [
+        {
+          "ANALYTICS_ROWS": 5819079,
+          "CANCELLED_ROWS": 89884,
+          "DIVERTED_ROWS": 15187,
+          "ON_TIME_ROWS": 4690510,
+          "DATA_QUALITY_ISSUE_ROWS": 486165,
+          "MISSING_AIRLINE_LOOKUP_ROWS": 0,
+          "MISSING_ORIGIN_LOOKUP_ROWS": 486165,
+          "MISSING_DESTINATION_LOOKUP_ROWS": 486165
+        }
+      ]
+    },
+    {
+      "check_id": "SF-RO-004",
+      "request_id": "fd90cfae27ff",
+      "profile": "snowflake-personal",
+      "environment": "SNOWFLAKE",
+      "database": "FLIGHT_DELAY_POC",
+      "permission_class": "read-only",
+      "statement_sha256": "0ae316d2cb8da0b50232e8cd5b44076b278ae00058622116ae4b76474c996c00",
+      "execution_time_ms": 3116,
+      "row_count": 1,
+      "rows_affected": 1,
+      "validation_status": "passed",
+      "expected": "ROW_DIFFERENCE equals 0.",
+      "actual": "RAW_ROWS=5819079; ANALYTICS_ROWS=5819079; ROW_DIFFERENCE=0.",
+      "columns": ["RAW_ROWS", "ANALYTICS_ROWS", "ROW_DIFFERENCE"],
+      "rows": [
+        {
+          "RAW_ROWS": 5819079,
+          "ANALYTICS_ROWS": 5819079,
+          "ROW_DIFFERENCE": 0
+        }
+      ]
+    },
+    {
+      "check_id": "SF-RO-005",
+      "request_id": "6359a3102ddc",
+      "profile": "snowflake-personal",
+      "environment": "SNOWFLAKE",
+      "database": "FLIGHT_DELAY_POC",
+      "permission_class": "read-only",
+      "statement_sha256": "9fb748bf7ef30aed5068f1e45c12de6e5a84bbe7d7da71d6591fd70129d51589",
+      "execution_time_ms": 3899,
+      "row_count": 1,
+      "rows_affected": 1,
+      "validation_status": "passed",
+      "expected": "NULL_FLIGHT_KEYS equals 0; duplicate and rule exception counts captured.",
+      "actual": "NULL_FLIGHT_KEYS=0; DUPLICATE_FLIGHT_KEYS=0; CANCELLED_WITHOUT_REASON=0; SAME_ORIGIN_DESTINATION=0.",
+      "columns": ["NULL_FLIGHT_KEYS", "DUPLICATE_FLIGHT_KEYS", "CANCELLED_WITHOUT_REASON", "SAME_ORIGIN_DESTINATION"],
+      "rows": [
+        {
+          "NULL_FLIGHT_KEYS": 0,
+          "DUPLICATE_FLIGHT_KEYS": 0,
+          "CANCELLED_WITHOUT_REASON": 0,
+          "SAME_ORIGIN_DESTINATION": 0
+        }
+      ]
+    }
+  ],
+  "blocked_or_excluded_checks": [
+    {
+      "check_id": "PG-WRITE-001",
+      "source_package_file": "postgresql/06_scratch_write_test.sql",
+      "status": "blocked",
+      "reason": "Contains DDL/DML and unresolved SCRATCH_TABLE token; excluded from approved read-only scope."
+    },
+    {
+      "check_id": "SF-WRITE-001",
+      "source_package_file": "snowflake/06_scratch_write_test.sql",
+      "status": "blocked",
+      "reason": "Contains DDL/DML and unresolved SCRATCH_TABLE token; excluded from approved read-only scope."
+    }
+  ],
+  "cross_platform_comparison": {
+    "raw_rows_match": true,
+    "analytics_rows_match": true,
+    "row_difference_match": true,
+    "classification_metrics_match": true,
+    "data_quality_metrics_match": true,
+    "rule_check_metrics_match": true,
+    "unexplained_differences": []
+  },
+  "errors": []
+}

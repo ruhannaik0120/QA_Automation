@@ -1,0 +1,16 @@
+2026-07-26T16:47:44.910929+00:00 | Run folder initialized | Success
+2026-07-26T16:48:48.240224+00:00 | GitHub QA package acquired | Success | Archive SHA-256 4d31c82ed34630754c9389d7466a3ffd36d5ce02634d1ee15eacaa39ced27f6d
+2026-07-26T16:50:00+00:00 | Consolidated ticket context prepared | Pending context approval | Jira attachment bytes unresolved; downloaded SQL not executed
+2026-07-26T16:55:00.0398021Z | Context approval recorded | Approved | Jira plus validated QA package only; unresolved DOCX/XLSX not reviewed and not action-critical for read-only planning/validation
+2026-07-26T16:56:30Z | QA plan prepared | Completed | qa-test-planner applied for read-only validation planning; execution not approved
+2026-07-26T16:58:00Z | Controlled SQL prepared | Completed | 10 read-only statements generated; scratch write tests excluded
+2026-07-26T16:59:00Z | SQL guard validation | Completed | 10 generated read-only statements accepted by MCP validation.sql_guard
+2026-07-26T17:00:00Z | Database profile discovery | Completed | postgres-personal and snowflake-personal matched configured targets exactly
+2026-07-26T17:00:00Z | Execution approval packet prepared | Pending approval | 10 read-only statements; no DDL or DML
+2026-07-26T17:01:59.3945042Z | Execution approval recorded | Approved | 10 read-only statements only; no DDL or DML
+2026-07-26T17:02:24.835656Z | PostgreSQL profile switched | Success | Active profile postgres-personal; database flight_delay_poc connected
+2026-07-26T17:03:55.081470Z | PostgreSQL approved checks executed | Completed | PG-RO-001 through PG-RO-005 passed
+2026-07-26T17:04:13.917000Z | Snowflake profile switched | Success | Active profile snowflake-personal; database FLIGHT_DELAY_POC connected
+2026-07-26T17:05:22.611119Z | Snowflake approved checks executed | Completed | SF-RO-001 through SF-RO-005 passed
+2026-07-26T17:06:00Z | Execution evidence normalized | Completed | 10 passed, 0 failed, 2 write checks blocked/excluded
+2026-07-26T17:07:00Z | Final reports generated and verified | Completed | output/KAN-7/report.html and output/KAN-7/report.xlsx

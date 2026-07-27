@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "downloads": [
+    {
+      "status": "success",
+      "source_type": "github_package",
+      "ticket_id": "KAN-7",
+      "repository": "rnnaik1102-droid/QA_Automation_POC_Inputs",
+      "ref": "main",
+      "package_path": "qa_packages/flight_delay_poc",
+      "stored_archive_path": "ticket_runs/KAN-7/downloads/source_archives/rnnaik1102-droid-QA_Automation_POC_Inputs-main-0d6e4079e3.zip",
+      "archive_byte_size": 10296,
+      "archive_sha256": "4d31c82ed34630754c9389d7466a3ffd36d5ce02634d1ee15eacaa39ced27f6d",
+      "extracted_root_path": "ticket_runs/KAN-7/downloads/qa_scripts",
+      "extracted_file_paths": [
+        "ticket_runs/KAN-7/downloads/qa_scripts/README.md",
+        "ticket_runs/KAN-7/downloads/qa_scripts/package_manifest.json",
+        "ticket_runs/KAN-7/downloads/qa_scripts/parameters.example.json",
+        "ticket_runs/KAN-7/downloads/qa_scripts/postgresql/01_setup_validation.sql",
+        "ticket_runs/KAN-7/downloads/qa_scripts/postgresql/02_pre_qa_checks.sql",
+        "ticket_runs/KAN-7/downloads/qa_scripts/postgresql/03_post_qa_checks.sql",
+        "ticket_runs/KAN-7/downloads/qa_scripts/postgresql/04_reconciliation.sql",
+        "ticket_runs/KAN-7/downloads/qa_scripts/postgresql/05_duplicate_and_rule_checks.sql",
+        "ticket_runs/KAN-7/downloads/qa_scripts/postgresql/06_scratch_write_test.sql",
+        "ticket_runs/KAN-7/downloads/qa_scripts/snowflake/01_setup_validation.sql",
+        "ticket_runs/KAN-7/downloads/qa_scripts/snowflake/02_pre_qa_checks.sql",
+        "ticket_runs/KAN-7/downloads/qa_scripts/snowflake/03_post_qa_checks.sql",
+        "ticket_runs/KAN-7/downloads/qa_scripts/snowflake/04_reconciliation.sql",
+        "ticket_runs/KAN-7/downloads/qa_scripts/snowflake/05_duplicate_and_rule_checks.sql",
+        "ticket_runs/KAN-7/downloads/qa_scripts/snowflake/06_scratch_write_test.sql"
+      ],
+      "extracted_file_count": 15,
+      "completed_at": "2026-07-26T16:48:48.240224+00:00"
+    }
+  ]
+}

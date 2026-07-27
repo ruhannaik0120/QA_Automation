@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QA Execution Report - KAN-7</title>
+  <style>
+    body { color: #17202a; font-family: Arial, sans-serif; margin: 32px auto; max-width: 1200px; padding: 0 20px; }
+    h1 { color: #163a5f; }
+    h2 { border-bottom: 2px solid #d8e1ea; margin-top: 32px; padding-bottom: 6px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #c8d2dc; padding: 9px; text-align: left; vertical-align: top; }
+    th { background: #eaf0f5; }
+    pre { margin: 0; max-height: 260px; overflow: auto; white-space: pre-wrap; }
+    .run-id { color: #465866; }
+  </style>
+</head>
+<body>
+  <h1>QA Execution Report</h1>
+  <p class="run-id"><strong>Ticket / run:</strong> KAN-7</p>
+  <h2>Execution Summary</h2>
+  <table><tbody><tr><th>Status</th><td>validation_passed</td></tr><tr><th>Total Queries</th><td>10</td></tr><tr><th>Passed</th><td>10</td></tr><tr><th>Failed</th><td>0</td></tr><tr><th>Execution Failed</th><td>0</td></tr><tr><th>Blocked</th><td>2</td></tr><tr><th>Not Evaluated</th><td>0</td></tr><tr><th>Postgres Profile</th><td>postgres-personal</td></tr><tr><th>Snowflake Profile</th><td>snowflake-personal</td></tr><tr><th>Cross Platform Result</th><td>PostgreSQL and Snowflake matched for all comparable metrics captured by the approved read-only checks.</td></tr><tr><th>Unresolved Or Excluded</th><td>DOCX/XLSX attachments were not reviewed; scratch write tests were excluded from read-only scope.</td></tr><tr><th>Error Count</th><td>0</td></tr></tbody></table>
+  <h2>Query Results</h2>
+  <table><thead><tr><th>#</th><th>Check / Query</th><th>Profile</th><th>Validation Status</th><th>Expected</th><th>Actual</th><th>Returned Rows</th><th>Rows Affected</th><th>Result Preview</th></tr></thead><tbody><tr><td>1</td><td>PG-RO-001</td><td>postgres-personal</td><td>passed</td><td>Database is flight_delay_poc; source and target objects exist.</td><td>Database was flight_delay_poc; source_flights_exists=true; target_exists=true.</td><td>1</td><td>1</td><td><pre>[
+  {
+    &quot;database_name&quot;: &quot;flight_delay_poc&quot;,
+    &quot;source_flights_exists&quot;: true,
+    &quot;target_exists&quot;: true
+  }
+]</pre></td></tr><tr><td>2</td><td>PG-RO-002</td><td>postgres-personal</td><td>passed</td><td>raw_flight_rows equals 5819079; blank-field counts captured.</td><td>raw_flight_rows=5819079; all checked blank-field counts were 0.</td><td>1</td><td>1</td><td><pre>[
+  {
+    &quot;raw_flight_rows&quot;: 5819079,
+    &quot;blank_year_rows&quot;: 0,
+    &quot;blank_airline_rows&quot;: 0,
+    &quot;blank_origin_rows&quot;: 0,
+    &quot;blank_destination_rows&quot;: 0
+  }
+]</pre></td></tr><tr><td>3</td><td>PG-RO-003</td><td>postgres-personal</td><td>passed</td><td>Analytics classification, lookup, and data-quality metrics captured.</td><td>analytics_rows=5819079; cancelled=89884; diverted=15187; on_time=4690510; data_quality_issue=486165; missing airline lookup=0; missing origin lookup=486165; missing destination lookup=486165.</td><td>1</td><td>1</td><td><pre>[
+  {
+    &quot;analytics_rows&quot;: 5819079,
+    &quot;cancelled_rows&quot;: 89884,
+    &quot;diverted_rows&quot;: 15187,
+    &quot;on_time_rows&quot;: 4690510,
+    &quot;data_quality_issue_rows&quot;: 486165,
+    &quot;missing_airline_lookup_rows&quot;: 0,
+    &quot;missing_origin_lookup_rows&quot;: 486165,
+    &quot;missing_destination_lookup_rows&quot;: 486165
+  }
+]</pre></td></tr><tr><td>4</td><td>PG-RO-004</td><td>postgres-personal</td><td>passed</td><td>row_difference equals 0.</td><td>raw_rows=5819079; analytics_rows=5819079; row_difference=0.</td><td>1</td><td>1</td><td><pre>[
+  {
+    &quot;raw_rows&quot;: 5819079,
+    &quot;analytics_rows&quot;: 5819079,
+    &quot;row_difference&quot;: 0
+  }
+]</pre></td></tr><tr><td>5</td><td>PG-RO-005</td><td>postgres-personal</td><td>passed</td><td>null_flight_keys equals 0; duplicate and rule exception counts captured.</td><td>null_flight_keys=0; duplicate_flight_keys=0; cancelled_without_reason=0; same_origin_destination=0.</td><td>1</td><td>1</td><td><pre>[
+  {
+    &quot;null_flight_keys&quot;: 0,
+    &quot;duplicate_flight_keys&quot;: 0,
+    &quot;cancelled_without_reason&quot;: 0,
+    &quot;same_origin_destination&quot;: 0
+  }
+]</pre></td></tr><tr><td>6</td><td>SF-RO-001</td><td>snowflake-personal</td><td>passed</td><td>Database is FLIGHT_DELAY_POC; source and target objects exist.</td><td>DATABASE_NAME=FLIGHT_DELAY_POC; SOURCE_FLIGHTS_EXISTS=1; TARGET_EXISTS=1.</td><td>1</td><td>1</td><td><pre>[
+  {
+    &quot;DATABASE_NAME&quot;: &quot;FLIGHT_DELAY_POC&quot;,
+    &quot;SOURCE_FLIGHTS_EXISTS&quot;: 1,
+    &quot;TARGET_EXISTS&quot;: 1
+  }
+]</pre></td></tr><tr><td>7</td><td>SF-RO-002</td><td>snowflake-personal</td><td>passed</td><td>RAW_FLIGHT_ROWS equals 5819079; blank-field counts captured.</td><td>RAW_FLIGHT_ROWS=5819079; all checked blank-field counts were 0.</td><td>1</td><td>1</td><td><pre>[
+  {
+    &quot;RAW_FLIGHT_ROWS&quot;: 5819079,
+    &quot;BLANK_YEAR_ROWS&quot;: 0,
+    &quot;BLANK_AIRLINE_ROWS&quot;: 0,
+    &quot;BLANK_ORIGIN_ROWS&quot;: 0,
+    &quot;BLANK_DESTINATION_ROWS&quot;: 0
+  }
+]</pre></td></tr><tr><td>8</td><td>SF-RO-003</td><td>snowflake-personal</td><td>passed</td><td>Analytics classification, lookup, and data-quality metrics captured.</td><td>ANALYTICS_ROWS=5819079; CANCELLED_ROWS=89884; DIVERTED_ROWS=15187; ON_TIME_ROWS=4690510; DATA_QUALITY_ISSUE_ROWS=486165; MISSING_AIRLINE_LOOKUP_ROWS=0; MISSING_ORIGIN_LOOKUP_ROWS=486165; MISSING_DESTINATION_LOOKUP_ROWS=486165.</td><td>1</td><td>1</td><td><pre>[
+  {
+    &quot;ANALYTICS_ROWS&quot;: 5819079,
+    &quot;CANCELLED_ROWS&quot;: 89884,
+    &quot;DIVERTED_ROWS&quot;: 15187,
+    &quot;ON_TIME_ROWS&quot;: 4690510,
+    &quot;DATA_QUALITY_ISSUE_ROWS&quot;: 486165,
+    &quot;MISSING_AIRLINE_LOOKUP_ROWS&quot;: 0,
+    &quot;MISSING_ORIGIN_LOOKUP_ROWS&quot;: 486165,
+    &quot;MISSING_DESTINATION_LOOKUP_ROWS&quot;: 486165
+  }
+]</pre></td></tr><tr><td>9</td><td>SF-RO-004</td><td>snowflake-personal</td><td>passed</td><td>ROW_DIFFERENCE equals 0.</td><td>RAW_ROWS=5819079; ANALYTICS_ROWS=5819079; ROW_DIFFERENCE=0.</td><td>1</td><td>1</td><td><pre>[
+  {
+    &quot;RAW_ROWS&quot;: 5819079,
+    &quot;ANALYTICS_ROWS&quot;: 5819079,
+    &quot;ROW_DIFFERENCE&quot;: 0
+  }
+]</pre></td></tr><tr><td>10</td><td>SF-RO-005</td><td>snowflake-personal</td><td>passed</td><td>NULL_FLIGHT_KEYS equals 0; duplicate and rule exception counts captured.</td><td>NULL_FLIGHT_KEYS=0; DUPLICATE_FLIGHT_KEYS=0; CANCELLED_WITHOUT_REASON=0; SAME_ORIGIN_DESTINATION=0.</td><td>1</td><td>1</td><td><pre>[
+  {
+    &quot;NULL_FLIGHT_KEYS&quot;: 0,
+    &quot;DUPLICATE_FLIGHT_KEYS&quot;: 0,
+    &quot;CANCELLED_WITHOUT_REASON&quot;: 0,
+    &quot;SAME_ORIGIN_DESTINATION&quot;: 0
+  }
+]</pre></td></tr></tbody></table>
+  <h2>Errors</h2>
+  <table><thead><tr><th>Query</th><th>Code</th><th>Message</th><th>Detail</th></tr></thead><tbody><tr><td colspan="4">No errors were recorded.</td></tr></tbody></table>
+</body>
+</html>

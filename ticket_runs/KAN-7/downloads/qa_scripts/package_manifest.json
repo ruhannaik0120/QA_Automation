@@ -1,0 +1,26 @@
+{
+  "package": "flight_delay_poc",
+  "version": "1.0",
+  "allowed_extensions": [
+    ".sql",
+    ".json",
+    ".md"
+  ],
+  "automatic_execution": false,
+  "files": [
+    "README.md",
+    "parameters.example.json",
+    "postgresql/01_setup_validation.sql",
+    "postgresql/02_pre_qa_checks.sql",
+    "postgresql/03_post_qa_checks.sql",
+    "postgresql/04_reconciliation.sql",
+    "postgresql/05_duplicate_and_rule_checks.sql",
+    "postgresql/06_scratch_write_test.sql",
+    "snowflake/01_setup_validation.sql",
+    "snowflake/02_pre_qa_checks.sql",
+    "snowflake/03_post_qa_checks.sql",
+    "snowflake/04_reconciliation.sql",
+    "snowflake/05_duplicate_and_rule_checks.sql",
+    "snowflake/06_scratch_write_test.sql"
+  ]
+}

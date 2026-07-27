@@ -1,0 +1,12 @@
+{
+  "POSTGRES_DATABASE": "flight_delay_poc",
+  "SNOWFLAKE_DATABASE": "FLIGHT_DELAY_POC",
+  "RAW_SCHEMA": "raw",
+  "ANALYTICS_SCHEMA": "analytics",
+  "QA_SCHEMA": "qa",
+  "SOURCE_AIRLINES_TABLE": "airlines",
+  "SOURCE_AIRPORTS_TABLE": "airports",
+  "SOURCE_FLIGHTS_TABLE": "flights",
+  "TARGET_TABLE": "flight_performance",
+  "EXPECTED_FLIGHT_ROWS": 5819079
+}
