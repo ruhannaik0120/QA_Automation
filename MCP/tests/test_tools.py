@@ -127,14 +127,32 @@ def test_tool_wrappers_return_structured_payload(monkeypatch):
     monkeypatch.setattr(connection_tools, "query_service", fake_service)
     monkeypatch.setattr(metadata_tools, "query_service", fake_service)
     monkeypatch.setattr(query_tools, "query_service", fake_service)
+    monkeypatch.setattr(
+        query_tools,
+        "bind_connection_profile_for_execution",
+        lambda name, database=None: (
+            fake_service,
+            {"resolved_profile": name, "database": database},
+        ),
+    )
 
     test_payload = connection_tools.test_connection(environment="DEV")
     health_payload = connection_tools.health(environment="DEV")
     databases_payload = metadata_tools.list_databases(environment="DEV")
     tables_payload = metadata_tools.list_tables(database="sales", schema="dbo", environment="DEV")
     describe_payload = metadata_tools.describe_table(database="sales", table="orders", schema="dbo", environment="DEV")
-    query_payload = query_tools.execute_query(sql="UPDATE items SET active = 1", database="sales", environment="DEV")
-    alias_payload = query_tools.execute_select_query(sql="SELECT 1", database="sales", environment="DEV")
+    query_payload = query_tools.execute_query(
+        connection_profile="sqlserver-sandbox",
+        sql="UPDATE items SET active = 1",
+        database="sales",
+        environment="DEV",
+    )
+    alias_payload = query_tools.execute_select_query(
+        connection_profile="sqlserver-sandbox",
+        sql="SELECT 1",
+        database="sales",
+        environment="DEV",
+    )
 
     assert test_payload["tool"] == "test_connection"
     assert health_payload["status"] == "healthy"
@@ -153,6 +171,8 @@ def test_query_tools_do_not_expose_execution_mode():
 
     assert "execution_mode" not in inspect.signature(query_tools.execute_query).parameters
     assert "execution_mode" not in inspect.signature(query_tools.execute_select_query).parameters
+    assert inspect.signature(query_tools.execute_query).parameters["connection_profile"].default is inspect.Parameter.empty
+    assert inspect.signature(query_tools.execute_select_query).parameters["connection_profile"].default is inspect.Parameter.empty
 # endregion Function: Test query tools do not expose execution mode
 
 
@@ -171,4 +191,6 @@ def test_server_query_tools_do_not_expose_execution_mode():
 
     assert "execution_mode" not in functions["tool_execute_query"]
     assert "execution_mode" not in functions["tool_execute_select_query"]
+    assert functions["tool_execute_query"][0] == "connection_profile"
+    assert functions["tool_execute_select_query"][0] == "connection_profile"
 # endregion Function: Test server query tools do not expose execution mode

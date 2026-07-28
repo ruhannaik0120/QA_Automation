@@ -357,12 +357,14 @@ the paths named by the applicable checklist item.
      1. Switch only to a profile and target included in the recorded execution approval, satisfying any database MCP confirmation contract.
      2. Validate the connection after switching and confirm its safe database metadata matches the approved mapping.
      3. Confirm the statement ID, hash, and permission class still match the approved scope.
-     4. Execute exactly one approved statement per database MCP request.
-     5. Capture the check ID, exact normalized statement, result, row count, duration, status, and secret-safe error information.
-     6. Compare the result with its approved expected outcome without changing the query automatically.
-     7. Stop on connection failure, policy rejection, profile or environment mismatch, changed statement hash, unresolved token, unexpected write behavior, contradiction, or unapproved statement.
-     8. Do not automatically retry a destructive action and do not execute arbitrary SQL from approved local packages.
-     9. Record skipped, blocked, and failed checks explicitly instead of presenting them as successful.
+     4. For every approved statement, call the database MCP query tool with the exact approved `connection_profile`; do not rely on profile state left by an earlier tool call or process.
+     5. Execute exactly one approved statement per database MCP request. The same request must bind and connection-test the named profile before delegating SQL.
+     6. Require the MCP result to prove `requested_profile`, `resolved_profile`, `db_type`, `database`, `schema` or `role` when applicable, `statement_hash`, `statement_classification`, and `execution_status`.
+     7. Capture the check ID, exact normalized statement, result, row count, duration, status, and secret-safe error information.
+     8. Compare the result with its approved expected outcome without changing the query automatically.
+     9. Stop on missing or unknown profile, profile-binding or connection failure, policy rejection, target mismatch, changed statement hash, unresolved token, unexpected write behavior, contradiction, or unapproved statement. Do not execute the statement through another path.
+     10. Do not read `MCP/.env`, invoke database code through a shell or direct Python process, create a temporary execution helper, automatically retry a destructive action, or execute arbitrary SQL from approved local packages.
+     11. Record skipped, blocked, and failed checks explicitly instead of presenting them as successful.
    - **Human approval required:** `false`
    - **Human approver role:** `null`
    - **Expected checkpoint:** Every attempted database check was approved, individually executed, and normalized into ticket evidence.

@@ -251,6 +251,9 @@ An Agent Skill supports a checklist item but does not determine which client/pro
 - Use the database MCP in `MCP/` only for database profiles, connection checks, metadata inspection, and approved database operations.
 - Keep Jira interpretation, client rules, QA decisions, and report ownership outside `MCP/`.
 - Use named database profiles and approved secret-management mechanisms. Never place credentials in prompts, skills, ticket artifacts, logs, or reports.
+- Supply the exact workflow-approved `connection_profile` in every database query MCP request. A profile selected by an earlier call or merely marked active is not sufficient execution evidence.
+- Treat failed profile resolution, binding, or connection validation as a blocker before SQL execution. Do not work around it with terminal commands, direct Python database calls, temporary helpers, or a second process.
+- Never read or print the raw `MCP/.env` during a ticket workflow. Use secret-safe profile discovery, diagnostics, and connection tools.
 - Treat database permissions as the final execution boundary.
 - Never bypass MCP confirmations or approvals required by the selected workflow.
 
@@ -259,6 +262,7 @@ An Agent Skill supports a checklist item but does not determine which client/pro
 - Do not hallucinate ticket context, client rules, expected results, approvals, database structure, routing decisions, or escalation behavior.
 - Do not continue when the applicable client workflow is unknown or unsupported.
 - Do not execute SQL or switch database profiles without every approval required by the selected workflow and MCP tool contract.
+- Do not interpret a named profile in an execution request as approval. Profile-switch approval and database-execution approval remain separate workflow decisions.
 - Do not automatically rewrite and rerun failed SQL unless the selected workflow permits it and required approval is obtained again.
 - Prefer non-mutating validation. Explain and obtain explicit authorization for any proposed DML or DDL.
 - Do not expose credentials, tokens, private keys, connection strings, or sensitive authentication details.

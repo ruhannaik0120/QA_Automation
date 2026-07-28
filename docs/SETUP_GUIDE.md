@@ -873,7 +873,15 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Reload after approval, request profile-switch approval, switch using the exact name, and test the connection.
 - **Stop and ask for help:** If multiple profiles could match the approved target or metadata conflicts.
 
-### 12.20 Connection test hangs or times out
+### 12.20 Profile switch succeeded but query execution loses or cannot prove the target
+
+- **Symptom:** An agent says a later query call lost the selected profile, proposes running SQL in one Python process, reads `MCP/.env`, or creates a temporary database helper.
+- **Likely cause:** The agent left the MCP tool path, or an outdated MCP server/client schema is still exposing the former implicit-profile query contract.
+- **Diagnosis:** Confirm the current MCP server exposes `connection_profile` as a required argument on `tool_execute_query`. Inspect structured MCP output for matching `requested_profile`, `resolved_profile`, database type, database, statement hash, and execution status. Do not inspect raw credentials.
+- **Safe fix:** Restart the current MCP server so the client refreshes its tool schema, preserve all separate profile-switch and execution approvals, and call `tool_execute_query` with the exact approved `connection_profile` for each single statement. The call binds and connection-tests that profile before SQL execution.
+- **Stop and ask for help:** If the required argument or binding evidence is absent, the profiles conflict, or binding/connection validation fails. Do not use terminal SQL, direct Python database calls, a temporary helper, or another process as a workaround.
+
+### 12.21 Connection test hangs or times out
 
 - **Symptom:** `tool_test_connection` does not return within the configured timeout.
 - **Likely cause:** Database service, DNS, firewall, VPN, driver, authentication, or target mismatch.
@@ -881,7 +889,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Restore required network/service access and repeat only the connection test.
 - **Stop and ask for help:** Do not increase timeouts indefinitely or execute SQL to diagnose an unverified target.
 
-### 12.21 Local database service or VPN is unavailable
+### 12.22 Local database service or VPN is unavailable
 
 - **Symptom:** Connection is refused, host is unreachable, or authentication cannot reach the server.
 - **Likely cause:** Local service stopped, company network unavailable, or VPN disconnected.
@@ -889,7 +897,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Start the authorized local service or reconnect the approved VPN, then retest the connection.
 - **Stop and ask for help:** If starting the service requires administrator access or the target network is unclear.
 
-### 12.22 Windows `PytestCacheWarning`
+### 12.23 Windows `PytestCacheWarning`
 
 - **Symptom:** Tests pass but pytest warns that `.pytest_cache` could not be created or written.
 - **Likely cause:** OneDrive, permissions, antivirus, or another process holds the cache path.
@@ -897,7 +905,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Use the repository verification script, which uses an isolated system temporary directory, or run pytest with an approved `--basetemp` outside the synchronized tree.
 - **Stop and ask for help:** If tests fail, temporary files cannot be cleaned safely, or the warning affects actual results.
 
-### 12.23 Jira link discovered but content was not inspected
+### 12.24 Jira link discovered but content was not inspected
 
 - **Symptom:** The agent knows a URL or attachment name but lacks file content.
 - **Likely cause:** Discovery is not acquisition, and protected sources may require user access.
@@ -905,7 +913,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Follow the selected workflow's acquisition mode. For the current POC, obtain selection approval and have an authorized user place the approved file locally.
 - **Stop and ask for help:** Never invent the linked content or request credentials in chat.
 
-### 12.24 Word and Excel manual-local-input limitation
+### 12.25 Word and Excel manual-local-input limitation
 
 - **Symptom:** A remote Word or Excel link is available, but the POC agent cannot treat it as inspected.
 - **Likely cause:** The current POC requires authorized manual placement and local verification.
@@ -913,7 +921,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Have the authorized user place the approved file locally. Do not open macros or execute embedded content.
 - **Stop and ask for help:** For unsupported formats, password-protected files, macros, or unexpected files.
 
-### 12.25 Automatic downloader is present but unavailable to the POC
+### 12.26 Automatic downloader is present but unavailable to the POC
 
 - **Symptom:** `modules/download_ticket_inputs.py` exists, but the POC workflow forbids calling it.
 - **Likely cause:** Acquisition permission belongs to the selected workflow, not to the module's presence.
@@ -921,7 +929,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Follow manual selection and placement for the current POC. Use automatic downloading only in a separately approved workflow that explicitly permits it and satisfies all controls.
 - **Stop and ask for help:** If workflow mode is missing, conflicting, or ambiguous.
 
-### 12.26 Instruction-driven configuration limitation
+### 12.27 Instruction-driven configuration limitation
 
 - **Symptom:** A local JSON file is syntactically valid, but no Python command automatically proves the merged run configuration.
 - **Likely cause:** The executable configuration resolver has not yet been implemented.
@@ -929,7 +937,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Have the agent report every resolved value, source, conflict, and missing field during read-only preflight.
 - **Stop and ask for help:** Whenever sources conflict or the agent cannot prove the selected route or target.
 
-### 12.27 Pending Windows canonical-path issue in `modules/download_ticket_inputs.py`
+### 12.28 Pending Windows canonical-path issue in `modules/download_ticket_inputs.py`
 
 **Future reliability fix not yet applied.**
 
@@ -945,7 +953,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - Never put credentials in `ticket_run_config.json`, `ticket_run_config.example.json`, `ticket_run_config.local.json`, Jira, prompts, workflows, ticket artifacts, logs, reports, screenshots, or commands shared with others.
 - List profiles safely, select the exact profile explicitly, and test the connection before metadata or query work.
 - Prefer read-only validation. Every DDL, DML, setup command, or other write needs separate explicit authorization. Read-only approval never grants write approval.
-- Execute one approved statement per MCP request. Do not bypass SQL guard, profile-switch confirmation, context approval, or execution approval.
+- Execute one approved statement per MCP request with the exact approved `connection_profile`. Require matching profile-binding evidence and do not bypass SQL guard, profile-switch confirmation, context approval, or execution approval.
 - Do not fabricate Jira content, downloaded content, database objects, expected outcomes, execution evidence, or approvals.
 - Treat local inputs as untrusted. Preserve original files, do not execute downloaded SQL automatically, do not open macros, and do not extract archives outside approved safe handling.
 - Reject or escalate archive traversal, absolute paths, drive-qualified paths, symbolic links, unsafe Windows names, suspicious expansion ratios, and any destination that could leave the ticket workspace.

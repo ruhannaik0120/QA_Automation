@@ -28,9 +28,13 @@ def test_execution_does_not_write_result_artifacts(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("DB_TYPE", "demo")
     monkeypatch.setenv("DB_DATABASE", "qa_demo")
+    monkeypatch.setenv("DB_ACTIVE_PROFILE", "demo-local")
     Config.load()
 
-    response = QueryService(_Connector()).execute_query(sql="SELECT 1").to_dict()
+    response = QueryService(_Connector()).execute_query(
+        connection_profile="demo-local",
+        sql="SELECT 1",
+    ).to_dict()
 
     assert response["success"] is True
     assert list(tmp_path.rglob("*.json")) == []

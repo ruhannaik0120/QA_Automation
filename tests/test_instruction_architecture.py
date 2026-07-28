@@ -378,6 +378,30 @@ def test_database_profile_discovery_precedes_execution_approval():
 # endregion Function: Test database profile sequence
 
 
+# region Function: Test execution binds exact approved profile
+def test_execution_binds_exact_approved_profile_without_process_workarounds():
+    """Require deterministic MCP profile binding and forbid helper execution paths."""
+
+    instructions = (REPOSITORY_ROOT / "Basic_Instructions.md").read_text(encoding="utf-8")
+    workflow = POC_WORKFLOW_PATH.read_text(encoding="utf-8")
+    mcp_documentation = (REPOSITORY_ROOT / "docs" / "MCP.md").read_text(encoding="utf-8")
+
+    for content in (instructions, workflow, mcp_documentation):
+        assert "connection_profile" in content
+    for evidence_field in (
+        "requested_profile",
+        "resolved_profile",
+        "statement_hash",
+        "execution_status",
+    ):
+        assert evidence_field in workflow.lower() or evidence_field in mcp_documentation.lower()
+    assert "do not rely on profile state left by an earlier tool call or process" in workflow
+    assert "Do not read `MCP/.env`" in workflow
+    assert "create a temporary execution helper" in workflow
+    assert "Do not work around it with terminal commands" in instructions
+# endregion Function: Test execution binds exact approved profile
+
+
 # region Function: Test genuine approval checkpoints
 def test_selection_context_execution_report_and_write_approvals_remain_separate():
     """Keep input, context, execution, report, and write authorization boundaries explicit."""

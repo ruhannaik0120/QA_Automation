@@ -10,6 +10,7 @@ or database permissions.
 from __future__ import annotations
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
+import hashlib
 import os
 from time import perf_counter
 from uuid import uuid4
@@ -42,6 +43,7 @@ class QueryService:
             self.connector = ConnectorFactory.create()
         else:
             self.connector = sql_connector
+        self.profile_name = os.getenv("DB_ACTIVE_PROFILE", "default").strip().lower() or "default"
     # endregion Function: Init
 
     # region Function: Request id
@@ -73,6 +75,39 @@ class QueryService:
             )
         return requested or configured
     # endregion Function: Execution database
+
+    # region Function: Execution profile
+    def _execution_profile(self, connection_profile: str | None) -> str:
+        """Require the request profile to match this service's bound connector."""
+
+        requested = (connection_profile or "").strip().lower()
+        if not requested:
+            raise ConfigError("connection_profile is required for query execution.")
+        if requested != self.profile_name:
+            raise ConfigError(
+                "Query execution profile does not match the profile bound to this connector."
+            )
+        return requested
+    # endregion Function: Execution profile
+
+    # region Function: Statement evidence
+    def _statement_evidence(self, statement: str) -> tuple[str, str]:
+        """Return a stable hash and coarse permission classification for one SQL statement."""
+
+        statement_hash = hashlib.sha256(statement.encode("utf-8")).hexdigest()
+        command = statement.lstrip().split(None, 1)[0].upper() if statement.strip() else ""
+        if command == "SELECT":
+            classification = "read_only"
+        elif command == "WITH":
+            classification = "cte_requires_approved_classification"
+        elif command in {"INSERT", "UPDATE", "DELETE", "MERGE"}:
+            classification = "dml_write"
+        elif command in {"CREATE", "ALTER", "DROP", "TRUNCATE"}:
+            classification = "ddl_write"
+        else:
+            classification = "environment_or_other"
+        return statement_hash, classification
+    # endregion Function: Statement evidence
 
     # region Function: Begin request
     def _begin_request(self, tool: str) -> tuple[str, object, object, float, str]:
@@ -118,7 +153,7 @@ class QueryService:
         # returns the same contract regardless of the selected connector.
         execution_time_ms = int((perf_counter() - start_time) * 1000)
         response_metadata = {
-            "profile": os.getenv("DB_ACTIVE_PROFILE", "default").strip() or "default",
+            "profile": self.profile_name,
             "db_type": Config.DB_TYPE,
             **runtime_metadata(),
             **(metadata or {}),
@@ -248,6 +283,51 @@ class QueryService:
             data=data,
         )
     # endregion Function: Handle connector error
+
+    # region Function: Profile binding error
+    def profile_binding_error(
+        self,
+        *,
+        connection_profile: str,
+        database: str | None,
+        schema: str | None,
+        error: Exception,
+        tool_name: str = "execute_query",
+    ) -> ToolResponse:
+        """Return a structured blocked result when exact profile binding fails."""
+
+        request_id, request_token, environment_token, start_time, requested_environment = self._begin_request(tool_name)
+        try:
+            response = self._handle_connector_error(
+                tool=tool_name,
+                requested_environment=requested_environment,
+                request_id=request_id,
+                start_time=start_time,
+                error=error,
+                retryable=False,
+                message="Connection profile binding failed; SQL was not executed.",
+                data={
+                    "requested_profile": (connection_profile or "").strip().lower(),
+                    "resolved_profile": "",
+                    "database": (database or "").strip(),
+                    "schema": (schema or "").strip(),
+                    "execution_status": "blocked",
+                    "row_count": 0,
+                    "rows": [],
+                },
+            )
+            return self._finalize_request(
+                response,
+                tool=tool_name,
+                environment=requested_environment,
+                request_id=request_id,
+                database=database,
+                schema=schema,
+            )
+        finally:
+            reset_request_id(request_token)
+            reset_environment(environment_token)
+    # endregion Function: Profile binding error
 
     # region Function: Test connection
     def test_connection(
@@ -741,6 +821,7 @@ class QueryService:
     # region Function: Execute query
     def execute_query(
         self,
+        connection_profile: str = "",
         sql: str = "",
         query: str = "",
         database: str | None = None,
@@ -761,7 +842,11 @@ class QueryService:
 
         request_id, request_token, environment_token, start_time, requested_environment = self._begin_request(_tool_name)
         statement = ""
+        resolved_profile = ""
+        statement_hash = ""
+        statement_classification = ""
         try:
+            resolved_profile = self._execution_profile(connection_profile)
             # Normalize both compatibility fields before choosing one so a
             # whitespace-only ``sql`` value cannot suppress a valid ``query``.
             normalized_sql = (sql or "").strip()
@@ -771,6 +856,7 @@ class QueryService:
             if normalized_sql and normalized_query and normalized_sql != normalized_query:
                 raise ConfigError("Provide either sql or query, not two different statements.")
             statement = normalized_sql or normalized_query
+            statement_hash, statement_classification = self._statement_evidence(statement)
             if max_rows is not None and max_rows <= 0:
                 raise ConfigError("max_rows must be greater than zero.")
             # Per-request limits may reduce, but never raise, the configured cap.
@@ -788,12 +874,17 @@ class QueryService:
                     start_time=start_time,
                     retryable=False,
                     data={
+                        "requested_profile": (connection_profile or "").strip().lower(),
+                        "resolved_profile": resolved_profile,
                         "current_environment": Config.DB_TYPE.upper(),
                         "database": database or Config.DATABASE,
                         "schema": schema or "",
                         "query": statement,
                         "row_count": 0,
                         "rows": [],
+                        "statement_hash": statement_hash,
+                        "statement_classification": statement_classification,
+                        "execution_status": "blocked",
                     },
                 )
                 return self._finalize_request(
@@ -824,6 +915,8 @@ class QueryService:
                 request_id=request_id,
                 start_time=start_time,
                 data={
+                    "requested_profile": (connection_profile or "").strip().lower(),
+                    "resolved_profile": resolved_profile,
                     "current_environment": Config.DB_TYPE.upper(),
                     "database": target_database,
                     "schema": schema or "",
@@ -833,9 +926,19 @@ class QueryService:
                     "rows_affected": payload.get("rows_affected", len(rows)),
                     "columns": columns,
                     "rows": rows,
+                    "statement_hash": statement_hash,
+                    "statement_classification": statement_classification,
+                    "execution_status": "executed",
                 },
                 metadata={
+                    "requested_profile": (connection_profile or "").strip().lower(),
+                    "resolved_profile": resolved_profile,
                     "db_type": Config.DB_TYPE,
+                    "database": target_database,
+                    "schema": schema or str(Config.CONNECTION_OPTIONS.get("schema", "")),
+                    "role": str(Config.CONNECTION_OPTIONS.get("role", "")),
+                    "statement_hash": statement_hash,
+                    "statement_classification": statement_classification,
                     "row_limit": row_limit,
                 },
             )
@@ -849,6 +952,7 @@ class QueryService:
                 query=statement,
             )
         except Exception as exc:
+            execution_status = "blocked" if isinstance(exc, ConfigError) else "execution_failed"
             response = self._handle_connector_error(
                 tool=_tool_name,
                 requested_environment=requested_environment,
@@ -856,11 +960,16 @@ class QueryService:
                 start_time=start_time,
                 error=exc,
                 data={
+                    "requested_profile": (connection_profile or "").strip().lower(),
+                    "resolved_profile": resolved_profile,
                     "database": database or Config.DATABASE,
                     "schema": schema or "",
                     "query": statement,
                     "row_count": 0,
                     "rows": [],
+                    "statement_hash": statement_hash,
+                    "statement_classification": statement_classification,
+                    "execution_status": execution_status,
                 },
                 message="Query execution failed.",
             )
