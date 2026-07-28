@@ -58,6 +58,7 @@ def test_initialize_run_is_idempotent(tmp_path: Path):
     assert payload["schema_version"] == "1.0"
     assert downloads_folder.is_dir()
     assert (run_folder / "generated").is_dir()
+    assert not (run_folder / "generated" / "input_selection.json").exists()
     assert (run_folder / "generated" / "generated_sql" / "generated_queries.sql").is_file()
     assert (run_folder / "generated" / "approvals" / "approval_log.md").is_file()
     assert (logs_root / "ABC-123.log").is_file()

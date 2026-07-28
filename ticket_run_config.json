@@ -7,6 +7,21 @@
     "downloads": "downloads",
     "generated": "generated"
   },
+  "input_acquisition": {
+    "mode_source": "selected_workflow",
+    "default_mode": null,
+    "supported_modes": [
+      "manual",
+      "automatic"
+    ],
+    "workflow_must_declare_mode": true,
+    "automatic_mode_requirements": [
+      "explicit_workflow_permission",
+      "required_acquisition_approvals_satisfied",
+      "authentication_configured",
+      "downloader_safety_controls_active"
+    ]
+  },
   "workflow_routing": {
     "workflows_root": "skills/workflows",
     "workflow_template": "skills/workflows/clientname_project_qaworkflow.md",
@@ -24,11 +39,111 @@
       "approved_by",
       "approved_on"
     ],
-    "approval_metadata_exempt_workflows": [
-      "skills/workflows/ruhan_poc_qaworkflow.md"
-    ],
+    "approval_metadata_exempt_workflows": [],
     "agent_skills_root": "skills/agent_skills",
     "skill_instruction_filename": "SKILL.md"
+  },
+  "run_specific_configuration": {
+    "example_path": "ticket_run_config.example.json",
+    "local_override_path": "ticket_run_config.local.json",
+    "local_override_must_be_gitignored": true,
+    "secrets_allowed": false,
+    "required_non_null_approval_fields": [
+      "approved_by",
+      "approved_on"
+    ]
+  },
+  "runtime_resolution": {
+    "inspect_local_configuration_before_routing_failure": true,
+    "routing_precedence": [
+      "authoritative_jira_ticket_context",
+      "explicit_approved_run_specific_configuration",
+      "authorized_user_clarification",
+      "never_guess"
+    ],
+    "post_workflow_selection_precedence": [
+      "authoritative_jira_ticket_context",
+      "selected_approved_workflow",
+      "explicit_approved_run_specific_configuration",
+      "authorized_user_clarification",
+      "never_guess"
+    ],
+    "lower_precedence_values_may_only_fill_missing_fields": true,
+    "conflict_behavior": "block_and_request_authorized_clarification",
+    "missing_required_behavior": "block_before_workspace_initialization"
+  },
+  "run_configuration_schema": {
+    "routing": {
+      "required_fields": [
+        "client_name",
+        "project_type"
+      ],
+      "optional_fields": [
+        "workflow_variant"
+      ]
+    },
+    "jira": {
+      "required_fields": [
+        "retrieval_mode",
+        "issue_key"
+      ],
+      "at_least_one_required_field": [
+        "site_url",
+        "cloud_id"
+      ],
+      "allowed_retrieval_modes": [
+        "direct_issue"
+      ]
+    },
+    "input_sources": {
+      "type": "array",
+      "supported_source_types": [
+        "direct_file",
+        "github_package"
+      ],
+      "common_fields": [
+        "source_type",
+        "authentication_profile",
+        "credential_environment_variable",
+        "allowed_extensions"
+      ],
+      "direct_file_required_fields": [
+        "source_type",
+        "url",
+        "allowed_extensions"
+      ],
+      "github_package_required_fields": [
+        "source_type",
+        "repository",
+        "ref",
+        "package_path",
+        "allowed_extensions"
+      ]
+    },
+    "database_targets": {
+      "type": "array",
+      "required_fields_when_declared": [
+        "db_type",
+        "database",
+        "schema",
+        "source_object",
+        "target_object"
+      ],
+      "optional_fields": [
+        "connection_profile"
+      ],
+      "profile_selection": "explicit_or_unique_secret_safe_metadata_match_only"
+    },
+    "workflow_approval": {
+      "optional_fields": [
+        "approval_metadata_exempt_workflows"
+      ],
+      "default_approval_metadata_exempt_workflows": []
+    },
+    "required_report_dependencies": {
+      "type": "array",
+      "default": []
+    }
   },
   "stable_artifact_paths": {
     "ticket_context": "generated/ticket_context.md",
@@ -53,27 +168,22 @@
     "excel",
     "both"
   ],
-  "approval_checkpoint_scope": "Baseline controls for the tested database-validation workflow. An approved client workflow may add stricter or client-specific checkpoints but must not bypass security or MCP confirmations.",
+  "approval_checkpoint_scope": "Baseline controls for database-validation workflows. An approved client workflow may add stricter or client-specific checkpoints but must not bypass security or MCP confirmations.",
   "human_approval_checkpoints": [
     {
       "id": "ticket_context_complete",
       "required_before": "qa_planning",
-      "description": "The user confirms that the combined Jira context and relevant local downloaded sources are complete enough for QA planning."
+      "description": "The user confirms that the combined Jira context and relevant approved local inputs are complete enough for QA planning."
     },
     {
-      "id": "sql_execution",
-      "required_before": "each_sql_execution",
-      "description": "The user approves the generated SQL before it is sent to the database MCP."
+      "id": "database_execution",
+      "required_before": "approved_database_execution",
+      "description": "The user approves the exact proposed statements, profile mappings, order, expected results, permission classifications, and stop conditions."
     },
     {
-      "id": "database_profile_switch",
-      "required_before": "each_profile_switch",
-      "description": "The user approves switching to another database system or named profile."
-    },
-    {
-      "id": "final_report_export",
-      "required_before": "html_or_excel_report_generation",
-      "description": "The user chooses and approves the final export format before report files are generated."
+      "id": "write_operation",
+      "required_before": "each_ddl_dml_or_environment_change",
+      "description": "The user separately authorizes each DDL, DML, or environment-changing operation; general database execution approval never grants write authorization."
     }
   ],
   "mcp_boundaries": {

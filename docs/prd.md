@@ -5,7 +5,7 @@
 | Document field | Value |
 |---|---|
 | Project | QA Automation |
-| Document purpose | Complete project explanation, product requirements, architecture, setup, operation, and future development guide |
+| Document purpose | Complete project explanation, product requirements, architecture, operation, and future development guide |
 | Primary audience | New developers, QA engineers, technical leads, AI-agent operators, and project stakeholders |
 | Agent context entry point | `Basic_Instructions.md` |
 | Client/project workflow location | `skills/workflows/` |
@@ -18,7 +18,7 @@
 
 The QA Automation project turns the requirements in a Jira ticket into a controlled QA validation run.
 
-An AI agent coordinates the process. It first reads the permanent project instructions, selects one exactly matching and eligible client/project workflow from `skills/workflows/`, and then follows its ordered checklist. Eligibility requires normal administrative approval metadata or an exact central approval-metadata exemption. A checklist item may invoke one exact Agent Skill. If routing information, workflow coverage, eligibility, or a required skill is missing, ambiguous, or conflicting, the agent stops and requests authorized clarification instead of inventing a process.
+An AI agent coordinates the process. It first reads the permanent project instructions, selects one exactly matching and eligible client/project workflow from `skills/workflows/`, and then follows its ordered checklist. Eligibility requires normal administrative approval metadata or an exact exemption in an explicitly approved local run configuration. A checklist item may invoke one exact Agent Skill. If routing information, workflow coverage, eligibility, or a required skill is missing, ambiguous, or conflicting, the agent stops and requests authorized clarification instead of inventing a process.
 
 The project is deliberately divided into separate responsibilities:
 
@@ -137,7 +137,7 @@ An MCP server publishes tools with structured inputs and outputs. In this projec
 - Atlassian provides an MCP server for Jira access.
 - This repository contains a separate MCP server for database access.
 
-The database MCP server is only one component of the complete QA Automation project. See [MCP.md](MCP.md) for its full implementation, setup, connector, and tool documentation.
+The database MCP server is only one component of the complete QA Automation project. See [MCP.md](MCP.md) for its implementation, connector, and tool documentation. Use [SETUP_GUIDE.md](SETUP_GUIDE.md) for installation and environment setup.
 
 ### 6.4 What is a database profile?
 
@@ -293,7 +293,7 @@ qa_automation/
 |   `-- mcp.json
 |-- Basic_Instructions.md
 |-- docs/
-|   |-- ADDING_AGENT_SKILLS.md
+|   |-- Add_Agent_Skills.md
 |   |-- MCP.md
 |   `-- prd.md
 |-- MCP/
@@ -326,6 +326,7 @@ qa_automation/
 |   `-- test_e2e_helpers.py
 |-- ticket_runs/
 |-- requirements-e2e.txt
+|-- ticket_run_config.example.json
 `-- ticket_run_config.json
 ```
 
@@ -336,7 +337,7 @@ qa_automation/
 | `Basic_Instructions.md` | Permanent project-wide rules, repository boundaries, safety requirements, workflow-selection rules, skill-resolution rules, and context-recovery instructions. |
 | `docs/prd.md` | This project-wide PRD and handoff document. |
 | `docs/MCP.md` | Detailed documentation for the reusable database MCP subsystem. |
-| `docs/ADDING_AGENT_SKILLS.md` | AI-agnostic manual process for reviewing, installing, verifying, and updating reusable Agent Skills. |
+| `docs/Add_Agent_Skills.md` | AI-agnostic manual process for reviewing, installing, verifying, and updating reusable Agent Skills. |
 | `MCP/` | Database MCP implementation, connectors, services, tools, configuration, and tests. |
 | `ticket_runs/` | Ticket-scoped workspaces containing external inputs under `downloads/` and workflow artifacts under `generated/`. Generated ticket folders are not committed. |
 | `logs/` | Shared workflow and execution logs, one file per ticket run. |
@@ -345,7 +346,8 @@ qa_automation/
 | `skills/workflows/` | Stable client/project procedures plus the non-active `clientname_project_qaworkflow.md` authoring template. |
 | `skills/agent_skills/` | Reusable task-specific skill packages. Each package is named by its exact skill key and contains a required `SKILL.md` plus any optional supporting files. |
 | `tests/` | Tests for the outer workflow helpers. |
-| `ticket_run_config.json` | Machine-readable shared paths, statuses, formats, and baseline control definitions. |
+| `ticket_run_config.json` | Machine-readable shared paths, schemas, resolution precedence, statuses, formats, and baseline controls. It contains no selected route. |
+| `ticket_run_config.example.json` | Placeholder-only example for an optional, approved, Git-ignored `ticket_run_config.local.json` containing non-secret run-specific values. |
 | `requirements-e2e.txt` | Outer workflow dependencies. It currently provides `openpyxl` for Excel export. |
 | `.vscode/mcp.json` | Workspace configuration for Atlassian MCP and the local database MCP server. |
 
@@ -456,7 +458,7 @@ approved_on: null
 ---
 ```
 
-For a completed workflow, `document_type` must be `qa_workflow`, `client_name` and `project_type` are mandatory, and `workflow_variant` is optional. Approval fields remain `null` until actual approval is provided. A workflow may retain null approval fields while active only when its exact path is explicitly listed in `workflow_routing.approval_metadata_exempt_workflows` in `ticket_run_config.json`; all other workflows require non-null approval metadata before use.
+For a completed workflow, `document_type` must be `qa_workflow`, `client_name` and `project_type` are mandatory, and `workflow_variant` is optional. Approval fields remain `null` until actual approval is provided. Shared configuration grants no approval-metadata exemptions by default. A workflow may retain null approval fields while active only when its exact path is explicitly listed in `workflow_approval.approval_metadata_exempt_workflows` in an approved, ignored `ticket_run_config.local.json`; all other workflows require non-null approval metadata before use.
 
 The filename identifies the workflow; there is no separate workflow identifier. Completed workflows use one of these filenames:
 
@@ -476,18 +478,18 @@ skills/workflows/nclh_edm_reconciliation_qaworkflow.md
 
 Workflow routing follows this exact process:
 
-1. Determine `client_name` from authoritative ticket or authorized-user context.
-2. Determine `project_type` from the Jira title or other authoritative ticket metadata.
-3. Determine `workflow_variant` only when explicitly required.
-4. Locate the workflow using the filename convention.
+1. Retrieve the authoritative Jira issue and always inspect a present `ticket_run_config.local.json` before declaring routing missing.
+2. Validate non-null local `configuration_approval.approved_by` and `configuration_approval.approved_on` before using local values.
+3. Resolve `client_name`, `project_type`, and optional `workflow_variant` from Jira first, approved local configuration only for missing values, and authorized-user clarification last.
+4. Locate the workflow using the exact filename convention. The workflow cannot supply the route used to select itself.
 5. Read and validate its YAML frontmatter.
 6. Confirm that `document_type` is exactly `qa_workflow`, `client_name` matches, `project_type` matches, and `workflow_variant` matches when required.
-7. Confirm that `approved_by` and `approved_on` are both not `null` unless the exact selected path is listed in `workflow_routing.approval_metadata_exempt_workflows`.
+7. Confirm that `approved_by` and `approved_on` are both not `null` unless the exact selected path is listed in `workflow_approval.approval_metadata_exempt_workflows` in an explicitly approved local run configuration.
 8. Use only that exact workflow.
 
 The reusable template at `skills/workflows/clientname_project_qaworkflow.md` has `document_type: qa_workflow_template`. It is non-active and must never be selected for a live ticket.
 
-Missing, ambiguous, duplicate, unmatched, or ineligible workflows cause the agent to stop before client-specific work and request clarification from an authorized owner. An eligible workflow has the required non-null approval metadata or an exact centrally configured approval-metadata exemption. It must not be chosen merely because its filename or contents appear similar.
+Missing, ambiguous, duplicate, unmatched, or ineligible workflows cause the agent to stop before client-specific work and request clarification from an authorized owner. An eligible workflow has the required non-null approval metadata or an exact exemption in an explicitly approved local run configuration. It must not be chosen merely because its filename or contents appear similar.
 
 The exemption applies only to administrative workflow metadata. It does not satisfy or bypass context approval, execution approval, write-operation approval, profile-switch approval, report approval, or any other runtime checkpoint.
 
@@ -499,10 +501,10 @@ The routing flow is:
 Read Basic_Instructions.md
       |
       v
-Determine client_name from authoritative context
+Retrieve Jira and inspect any present approved local configuration
       |
       v
-Determine project_type and explicit workflow_variant when required
+Resolve routing: Jira, then approved local values, then clarification
       |
       v
 Locate exact filename and validate frontmatter and approval fields
@@ -766,7 +768,7 @@ The MCP server exposes tools for:
 - executing one approved SQL statement; and
 - returning structured results and errors.
 
-The exact tool names, response contracts, profile configuration, AI-client setup, and connector extension process are documented in [MCP.md](MCP.md).
+The exact tool names, response contracts, profile model, AI-client integration contract, and connector extension process are documented in [MCP.md](MCP.md).
 
 ### 13.4 MCP boundary rules
 
@@ -936,7 +938,7 @@ Reports can contain sensitive business data even when credentials are removed. U
 | FR-23 | The agent shall read `Basic_Instructions.md` when starting, resuming, or recovering context. |
 | FR-24 | Every completed workflow shall be stored under `skills/workflows/` using `<client-name>_<project-type>_qaworkflow.md` or, when explicitly required, `<client-name>_<project-type>_<workflow-variant>_qaworkflow.md`. |
 | FR-25 | The agent shall route by authoritative `client_name`, `project_type`, and optional `workflow_variant`, locate the exact filename, and validate its frontmatter. |
-| FR-26 | The agent shall use only a workflow whose `document_type` is `qa_workflow`, routing metadata matches exactly, and approval metadata is non-null unless the exact workflow path has a centrally configured approval-metadata exemption; invalid or uncertain routing shall stop for authorized clarification. |
+| FR-26 | The agent shall use only a workflow whose `document_type` is `qa_workflow`, routing metadata matches exactly, and approval metadata is non-null unless the exact workflow path has an exemption in an explicitly approved local run configuration; invalid or uncertain routing shall stop for authorized clarification. |
 | FR-27 | `skills/workflows/clientname_project_qaworkflow.md` shall retain `document_type: qa_workflow_template`, remain non-active, and never be selected for a live ticket. |
 | FR-28 | Every reusable Agent Skill shall be stored under `skills/agent_skills/<skill-name>/` with a required `SKILL.md` and optional skill-specific supporting files. |
 | FR-29 | A checklist item's **Required Agent Skill**, its skill folder name, and the `SKILL.md` metadata name shall match exactly; missing or conflicting required skills shall block the item. |
@@ -970,97 +972,16 @@ Ticket initialization must be idempotent. Report generation must validate its in
 
 Normal automated tests should not require live Jira access or a live external database. Live connectivity tests should remain explicit and opt-in.
 
-## 20. First-Time Setup
+## 20. Setup Reference
 
-### 20.1 Prerequisites
-
-The operator or developer needs:
-
-- repository access;
-- Git;
-- Python 3.12 or another compatible Python 3 version;
-- PowerShell for the provided Windows scripts;
-- VS Code or another MCP-compatible AI client;
-- permission to use the required Atlassian site;
-- database access for any live profiles; and
-- required operating-system database drivers, such as Microsoft ODBC Driver 18 for SQL Server.
-
-### 20.2 Clone and open the complete project
-
-Clone the repository and open its root, not only the `MCP/` subfolder:
-
-```powershell
-git clone <repository-url>
-cd <repository-folder>
-code .
-```
-
-### 20.3 Create the Python environment
-
-From the repository root:
-
-```powershell
-PowerShell -ExecutionPolicy Bypass -File .\MCP\scripts\setup.ps1
-```
-
-The setup script creates or repairs the root `.venv`, installs database MCP dependencies from `MCP/requirements.txt`, and installs report dependencies from `requirements-e2e.txt`.
-
-### 20.4 Create local MCP configuration
-
-Create `MCP/.env` from the safe example if it does not already exist:
-
-```powershell
-if (-not (Test-Path .\MCP\.env)) {
-    Copy-Item .\MCP\.env.example .\MCP\.env
-}
-```
-
-Start with the offline demo profile. Configure live named profiles only through the approved local or managed-secret process.
-
-### 20.5 Confirm MCP workspace configuration
-
-`.vscode/mcp.json` defines:
-
-- the remote Atlassian MCP endpoint; and
-- the local database MCP command using `.venv\Scripts\python.exe`, `MCP\server.py`, and `MCP` as its working directory.
-
-After changing MCP configuration, restart or reload the AI client so it rediscovers the tools.
-
-### 20.6 Authenticate Atlassian
-
-Start the Atlassian MCP server from the AI client and complete the browser authentication flow using the account authorized for the required Jira site.
-
-OAuth tokens must not be placed in the repository.
-
-### 20.7 Verify the installation
-
-Run:
-
-```powershell
-PowerShell -ExecutionPolicy Bypass -File .\MCP\scripts\verify.ps1
-```
-
-The verification pipeline compiles tracked Python files, runs MCP tests, runs an offline demo smoke test, and runs outer workflow helper tests.
-
-### 20.8 Add an approved client workflow
-
-The repository intentionally ships with a non-active template rather than an assumed client procedure. Before a live run:
-
-1. Copy `skills/workflows/clientname_project_qaworkflow.md` to `skills/workflows/<client-name>_<project-type>_qaworkflow.md`, adding `_<workflow-variant>` before `_qaworkflow.md` only when a variant is explicitly required.
-2. Replace every template field and section with confirmed, stable client/project requirements rather than one ticket's details.
-3. Define each workflow step as a complete checklist item and place an exact **Required Agent Skill** value only inside items that need one.
-4. Set `document_type` to `qa_workflow`, confirm the routing metadata matches the filename, and keep `approved_by` and `approved_on` as `null` until real approval is recorded. A null-metadata workflow may become active only through an explicit central exemption; a workflow must not exempt itself.
-5. Test exact supported routing and no-match, duplicate, ambiguous, unapproved, blocked-item, and missing-skill cases before using live systems.
-
-Do not rename, activate, or use the template itself for a live ticket. No automatic filename-generation or routing code currently performs these steps.
-
+Installation, environment configuration, MCP-client registration, Atlassian authentication, and first-run verification are centralized in [SETUP_GUIDE.md](SETUP_GUIDE.md). This PRD intentionally does not duplicate those procedures.
 ## 21. Normal Operating Procedure
 
 1. Read `Basic_Instructions.md` completely.
-2. Establish the ticket ID and determine `client_name` from authoritative ticket or authorized-user context.
-3. Determine `project_type` from the Jira title or other authoritative ticket metadata and determine `workflow_variant` only when explicitly required.
-4. Locate the exact filename under `skills/workflows/`, validate matching frontmatter, and confirm `approved_by` and `approved_on` are not `null` unless the exact path is listed in the central approval-metadata exemption configuration.
-5. If routing is missing, ambiguous, conflicting, or unsupported, stop and request clarification from an authorized owner.
+2. Establish the ticket ID, retrieve Jira, and inspect any present `ticket_run_config.local.json` before declaring routing missing.
+3. Validate the local configuration approval, then resolve `client_name`, `project_type`, and optional `workflow_variant` from Jira first, approved local values only when missing, and authorized clarification last.
+4. Locate the exact filename under `skills/workflows/`, validate matching frontmatter, and confirm `approved_by` and `approved_on` are not `null` unless the exact path is listed in `workflow_approval.approval_metadata_exempt_workflows` in an explicitly approved local run configuration.
+5. If routing remains missing, ambiguous, conflicting, or unsupported after all authorized routing sources are checked, stop and request clarification from an authorized owner.
 6. Read the selected workflow completely and state which workflow is active.
 7. Follow its ordered checklist and resolve an item's **Required Agent Skill** to `skills/agent_skills/<skill-name>/SKILL.md` only when that value is not `null`.
 8. Confirm the tools and systems required by the workflow and its skills are available.
@@ -1196,7 +1117,7 @@ To onboard a client:
 3. Replace template prompts with stable client/project requirements and complete ordered checklist items for context, systems, approvals, evidence, reports, and escalation contacts.
 4. Declare a reusable capability through **Required Agent Skill** only inside the checklist item that needs it, using a package under `skills/agent_skills/<skill-name>/`.
 5. Confirm that the workflow respects `Basic_Instructions.md` and does not embed client logic inside `MCP/` or `modules/`.
-6. Set `document_type` to `qa_workflow` and have the designated QA workflow owner populate `approved_by` and `approved_on` before the workflow is used, unless an authorized project owner adds the exact path to the central approval-metadata exemption configuration.
+6. Set `document_type` to `qa_workflow` and have the designated QA workflow owner populate `approved_by` and `approved_on` before the workflow is used, unless an authorized project owner adds the exact path to `workflow_approval.approval_metadata_exempt_workflows` in an explicitly approved local run configuration.
 7. Test the workflow against representative non-production tickets, including exact-match, no-match, ambiguous-routing, unsupported, and required-skill failure cases.
 
 Never make the template itself active, and never create a client workflow by guessing from one ticket.
@@ -1210,8 +1131,9 @@ An Agent Skill should teach one reusable task and remain limited to the checklis
 ## 25. Known Boundaries And Limitations
 
 - The AI agent currently coordinates the workflow; there is no standalone workflow dashboard.
+- Run-specific configuration resolution is currently instruction-driven. Future hardening should add an executable resolver that loads, merges, validates, and reports conflicts between authoritative Jira context, selected workflow metadata, and `ticket_run_config.local.json`.
 - Client workflow selection currently depends on authoritative user or ticket context; there is no central client-routing service.
-- The repository contains a non-active workflow template; a workflow becomes usable only after a separately named copy has complete routing metadata and either explicit administrative approval metadata or an exact central approval-metadata exemption.
+- The repository contains a non-active workflow template; a workflow becomes usable only after a separately named copy has complete routing metadata and either explicit administrative approval metadata or an exact exemption in an explicitly approved local run configuration.
 - Missing, ambiguous, conflicting, or unsupported routing and required-skill problems require clarification from the project manager or designated QA workflow owner.
 - Jira retrieval depends on Atlassian authentication and account permissions.
 - The agent may be unable to open credential-protected external links referenced by Jira. An authorized user must download that content to the ticket's `downloads/` folder when it is needed for the run.
@@ -1234,7 +1156,7 @@ The complete project is considered ready for a controlled ticket run when:
 4. The demo connector passes without live credentials.
 5. Required live database profiles report ready before use.
 6. `Basic_Instructions.md` can restore the agent's project role and folder relationships without prescribing one client's exact procedure.
-7. An exact eligible client/project workflow can be selected by authoritative `client_name`, `project_type`, optional `workflow_variant`, matching frontmatter, and either non-null approval fields or an exact central approval-metadata exemption.
+7. An exact eligible client/project workflow can be selected by authoritative `client_name`, `project_type`, optional `workflow_variant`, matching frontmatter, and either non-null approval fields or an exact exemption in an explicitly approved local run configuration.
 8. Unknown, ambiguous, conflicting, and unsupported routing or required-skill problems stop for authorized clarification without client-specific execution.
 9. A ticket ID creates `ticket_runs/<ticket-id>/downloads/` and `ticket_runs/<ticket-id>/generated/` with the documented generated-artifact structure.
 10. Inaccessible supporting sources can be supplied through an authorized local download without exposing credentials to the agent.
@@ -1258,12 +1180,12 @@ Before handing the project to another developer or team:
 3. Run `MCP/scripts/verify.ps1`.
 4. Confirm `.vscode/mcp.json` uses repository-relative paths.
 5. Confirm `Basic_Instructions.md` describes permanent agent behavior and does not contain one client's detailed procedure.
-6. Confirm every active workflow under `skills/workflows/` follows the filename convention, has exact matching routing metadata, uses `document_type: qa_workflow`, and has either non-null approval fields or an exact entry in `workflow_routing.approval_metadata_exempt_workflows`.
+6. Confirm every active workflow under `skills/workflows/` follows the filename convention, has exact matching routing metadata, uses `document_type: qa_workflow`, and has either non-null approval fields or an exact entry in the approved local run configuration's `workflow_approval.approval_metadata_exempt_workflows`.
 7. Confirm `skills/workflows/clientname_project_qaworkflow.md` retains `document_type: qa_workflow_template` and every checklist-item **Required Agent Skill** resolves exactly under `skills/agent_skills/`.
 8. Confirm `ticket_run_config.json` matches the documented shared artifact paths and baseline controls.
 9. Confirm generated ticket runs, logs, and outputs are not committed.
 10. Give the recipient this document for the project overview.
-11. Give the recipient `MCP.md` for database subsystem setup and extension details.
+11. Give the recipient `MCP.md` for database subsystem behavior and extension details, and `SETUP_GUIDE.md` for installation and environment setup.
 12. Demonstrate exact workflow selection, one stop-and-clarification case, required-skill resolution, and one offline MCP demo before connecting to live systems.
 
 ## 28. Glossary
@@ -1274,7 +1196,7 @@ Before handing the project to another developer or team:
 | Approval checkpoint | A required pause where a human authorizes the next action. |
 | Artifact | A file produced or updated during a ticket run. |
 | Agent Skill | Reusable task-specific instructions stored at `skills/agent_skills/<skill-name>/SKILL.md`; it supports the checklist item that names it but does not select or replace a client/project workflow. |
-| Client/project workflow | An eligible file under `skills/workflows/` with `document_type: qa_workflow`, exact routing metadata, ordered checklist items for one client, project type, and optional workflow variant, and either approval metadata or an exact central exemption. |
+| Client/project workflow | An eligible file under `skills/workflows/` with `document_type: qa_workflow`, exact routing metadata, ordered checklist items for one client, project type, and optional workflow variant, and either approval metadata or an exact exemption in an explicitly approved local run configuration. |
 | Connector | Database-specific implementation behind the common MCP interface. |
 | Downloads | External source files associated with a ticket, including authorized local copies of inaccessible attachments or linked documents. |
 | Execution success | Confirmation that a SQL statement ran, not that the QA expectation passed. |
@@ -1291,10 +1213,11 @@ Before handing the project to another developer or team:
 
 Use the project documentation in this order:
 
-1. **`docs/prd.md`** - understand the complete product, architecture, requirements, setup, and design.
+1. **`docs/prd.md`** - understand the complete product, architecture, requirements, operation, and design.
 2. **`Basic_Instructions.md`** - restore the agent's role, repository relationships, permanent boundaries, and workflow-selection behavior.
-3. **`skills/workflows/<client-name>_<project-type>[_<workflow-variant>]_qaworkflow.md`** - follow the one exact eligible workflow selected through authoritative routing context, matching frontmatter, and either non-null approval fields or an exact central approval-metadata exemption.
+3. **`skills/workflows/<client-name>_<project-type>[_<workflow-variant>]_qaworkflow.md`** - follow the one exact eligible workflow selected through authoritative routing context, matching frontmatter, and either non-null approval fields or an exact exemption in an explicitly approved local run configuration.
 4. **`skills/agent_skills/<skill-name>/SKILL.md`** - follow reusable task instructions only when a checklist item's **Required Agent Skill** names that exact skill.
 5. **`skills/workflows/clientname_project_qaworkflow.md`** - author a new client/project workflow from a non-active template; never use the template directly for a live run.
-6. **`docs/MCP.md`** - configure, operate, troubleshoot, and extend the database MCP subsystem.
-7. **`ticket_run_config.json`** - inspect the machine-readable shared paths, statuses, formats, and baseline controls.
+6. **`docs/MCP.md`** - understand, operate, troubleshoot, and extend the database MCP subsystem.
+7. **`docs/SETUP_GUIDE.md`** - install dependencies, configure the local environment, register MCP servers, and verify a new machine.
+8. **`ticket_run_config.json`** - inspect the machine-readable shared paths, statuses, formats, and baseline controls.
