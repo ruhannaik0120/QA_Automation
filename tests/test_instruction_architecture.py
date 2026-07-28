@@ -362,7 +362,7 @@ def test_database_profile_discovery_precedes_execution_approval():
 
     workflow = POC_WORKFLOW_PATH.read_text(encoding="utf-8")
     discovery = workflow.index("List database profiles through secret-safe MCP discovery")
-    approval = workflow.index("Approve the proposed read-only execution scope. No DDL or DML.")
+    approval = workflow.index("Approve the proposed database execution scope.")
     switch = workflow.index("Switch only to a profile and target included")
     connection = workflow.index("Validate the connection after switching")
 
@@ -385,7 +385,9 @@ def test_selection_context_execution_report_and_write_approvals_remain_separate(
     assert workflow.count("**Human approval required:** `true`") == 4
     assert "Approve the proposed input selection." in workflow
     assert "Approve context." in workflow
-    assert "Approve the proposed read-only execution scope. No DDL or DML." in workflow
+    assert "Approve the proposed database execution scope." in workflow
+    assert "General database execution approval does not authorize a write." in workflow
+    assert "Approve the proposed read-only execution scope. No DDL or DML." not in workflow
     assert "Approve the proposed report export." in workflow
     assert "failures are blockers rather than approval checkpoints" in workflow
 # endregion Function: Test genuine approval checkpoints
@@ -509,6 +511,7 @@ def test_selected_route_values_remain_out_of_reusable_repository_files():
 
     test_relative_path = "tests/test_instruction_architecture.py"
     manual_workflow_test_path = "tests/test_manual_input_workflow.py"
+    local_override_path = _load_config()["run_specific_configuration"]["local_override_path"]
     allowed_paths_by_value = {
         "ruhan": {
             POC_WORKFLOW_RELATIVE_PATH,
@@ -531,6 +534,8 @@ def test_selected_route_values_remain_out_of_reusable_repository_files():
     for path in REPOSITORY_ROOT.rglob("*"):
         relative_path = path.relative_to(REPOSITORY_ROOT).as_posix()
         if not path.is_file() or any(part in AUDIT_EXCLUDED_DIRECTORIES for part in path.parts):
+            continue
+        if relative_path == local_override_path:
             continue
         if path.name == ".env" or (
             path.name != ".gitignore" and path.suffix.casefold() not in AUDITED_TEXT_SUFFIXES

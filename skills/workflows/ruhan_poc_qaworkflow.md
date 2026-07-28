@@ -331,8 +331,8 @@ the paths named by the applicable checklist item.
      1. List database profiles through secret-safe MCP discovery and match the configured targets by database type, database name, and other available non-secret metadata; the active profile is not an automatic selection.
      2. Stop as a blocker when a target has zero or multiple matches. Do not ask the user to guess a discoverable profile name.
      3. Write the final plan summary, exact profile-to-target mappings, statement IDs and hashes, execution order, expected outcomes, permission classifications, unresolved facts, stop conditions, and excluded operations to the approval log and generated SQL artifacts.
-     4. Present that exact read-only scope and ask exactly `Approve the proposed read-only execution scope. No DDL or DML.`
-     5. Request separate explicit authorization for every write statement, DDL, DML, or environment-changing setup command.
+     4. Present the exact proposed database execution scope, including every statement's permission classification, and ask exactly `Approve the proposed database execution scope.`
+     5. For every write statement, DDL, DML, or environment-changing setup command in that scope, request separate explicit authorization identifying the exact statement, target profile, environment, and expected effect. General database execution approval does not authorize a write.
      6. Record approval or rejection with the exact approved scope in the approval log.
      7. Do not broaden approval from one statement, environment, profile, or permission class to another.
    - **Human approval required:** `true`

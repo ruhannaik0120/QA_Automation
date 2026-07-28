@@ -227,7 +227,164 @@ Validate only its JSON syntax with:
 if ($LASTEXITCODE -eq 0) { Write-Host 'Local configuration JSON is valid.' }
 ```
 
-### 6.4 Resolution order and blockers
+### 6.4 Local configuration field reference
+
+The local file uses the structure below. `null` means that this file does not supply the value and a higher-precedence authoritative source must provide it. An empty array means that the local file declares no entries of that type. Do not replace `null` with guessed text, and do not place illustrative placeholder objects inside an array unless every required field is known and authorized.
+
+```json
+{
+  "configuration_approval": {
+    "approved_by": null,
+    "approved_on": null
+  },
+  "routing": {
+    "client_name": null,
+    "project_type": null,
+    "workflow_variant": null
+  },
+  "jira": {
+    "site_url": null,
+    "cloud_id": null,
+    "retrieval_mode": "direct_issue",
+    "issue_key": null
+  },
+  "input_sources": [],
+  "database_targets": [],
+  "workflow_approval": {
+    "approval_metadata_exempt_workflows": []
+  },
+  "required_report_dependencies": []
+}
+```
+
+Use these general rules:
+
+| Configuration area | When it is compulsory | When it may remain `null` or empty |
+|---|---|---|
+| `configuration_approval` | Both fields are compulsory whenever `ticket_run_config.local.json` is used. | The entire local file may remain absent when no local values or workflow exemption are required. |
+| `routing` | The final resolved run must have `client_name` and `project_type`. | Local values may remain `null` when Jira or the selected workflow supplies them. `workflow_variant` remains `null` when no variant applies. |
+| `jira` | The final resolved run needs `issue_key`, `retrieval_mode`, and at least one of `site_url` or `cloud_id`. | Local fields may remain `null` when the user and authorized Atlassian integration supply them during preflight. |
+| `input_sources` | Declare entries only when approved local configuration must provide source details not already supplied authoritatively. | Keep `[]` for manual Jira discovery or when Jira and the workflow already identify the sources. |
+| `database_targets` | Declare an entry when approved local configuration must identify a database validation target. | Keep `[]` when targets will be obtained from Jira, an approved local input, the selected workflow, or when the workflow does not use databases. |
+| `workflow_approval` | Add an exact path only when an authorized local exemption is required for a workflow with null approval metadata. | Keep its array empty for normally approved workflows. |
+| `required_report_dependencies` | Add a package name only when the selected workflow requires report software not already supplied by the project environment. | Keep `[]` when no additional dependency is required. |
+
+#### Configuration approval
+
+| Field | Meaning and completion rule |
+|---|---|
+| `configuration_approval.approved_by` | Actual authorized person or identity that approved the local configuration. It must be non-null when the local file is used; never invent an approver. |
+| `configuration_approval.approved_on` | Date of that approval in the approved project format, normally `YYYY-MM-DD`. It must be non-null when the local file is used. |
+
+This approval covers only the non-secret local configuration values. It does not approve the workflow, ticket context, input selection, SQL, profile switch, database write, execution result, or report export.
+
+#### Routing
+
+| Field | Meaning and completion rule |
+|---|---|
+| `routing.client_name` | Exact client identifier used to select the workflow. Fill it locally only when Jira and the selected workflow do not already establish it and an authorized person confirms it. |
+| `routing.project_type` | Exact project identifier used in the workflow filename and metadata, such as an approved EDM, RMS, or POC key. Leave it `null` locally when authoritative Jira metadata supplies it. |
+| `routing.workflow_variant` | Optional additional routing discriminator when more than one workflow exists for the same client and project. Leave it `null` when no variant applies. |
+
+The final resolved `client_name` and `project_type` must match the selected workflow filename and frontmatter exactly. Local routing must not override a conflicting Jira value.
+
+#### Jira
+
+| Field | Meaning and completion rule |
+|---|---|
+| `jira.site_url` | Authorized Jira site URL. Fill it only when the Atlassian integration cannot resolve the intended site and the exact non-secret URL is authorized. |
+| `jira.cloud_id` | Authorized Atlassian cloud identifier used instead of or alongside `site_url`. At least one site identifier must exist in the resolved configuration. |
+| `jira.retrieval_mode` | Retrieval method permitted by the shared schema. Keep `direct_issue` for the current direct-ticket contract. |
+| `jira.issue_key` | Exact ticket key for the run. Leave it `null` locally when the user supplies the key at run start; fill it only when this approved local file is intentionally scoped to one ticket. |
+
+Do not store Atlassian tokens, cookies, authorization headers, or signed attachment URLs in any Jira field.
+
+#### Input sources
+
+`input_sources` describes non-secret acquisition metadata when it must be supplied through approved local configuration. It is not the per-ticket attachment-selection record. Manual include, exclude, defer, and clarification decisions belong in `ticket_runs/<ticket-id>/generated/input_selection.json`, which is created during the applicable workflow.
+
+Keep `input_sources` as `[]` when Jira will discover attachments or links, when the workflow uses manual selection and placement, or when no external input applies. An automatic workflow may use declared sources only when it explicitly permits automatic acquisition and all of its approval and downloader-safety conditions are satisfied.
+
+Documentation-only direct-file example:
+
+```json
+{
+  "source_type": "direct_file",
+  "url": "<authorized-stable-https-url>",
+  "authentication_profile": "<optional-profile-name>",
+  "credential_environment_variable": "<optional-environment-variable-name>",
+  "allowed_extensions": [".<approved-extension>"]
+}
+```
+
+Documentation-only GitHub-package example:
+
+```json
+{
+  "source_type": "github_package",
+  "repository": "<owner>/<repository>",
+  "ref": "<branch-tag-or-commit>",
+  "package_path": "<exact/repository/package/path>",
+  "authentication_profile": "<optional-profile-name>",
+  "credential_environment_variable": "<optional-environment-variable-name>",
+  "allowed_extensions": [".<approved-extension>"]
+}
+```
+
+| Field | Meaning and completion rule |
+|---|---|
+| `source_type` | Must be `direct_file` or `github_package` under the current schema. It determines which remaining fields are required. |
+| `url` | Required only for `direct_file`. Use an authorized stable HTTPS URL without embedded credentials, tokens, or signed query parameters. |
+| `repository` | Required only for `github_package`; use the exact `owner/repository` identifier. |
+| `ref` | Required only for `github_package`; use the exact authorized branch, tag, or commit. |
+| `package_path` | Required only for `github_package`; use the exact package directory, not a similar or parent path. |
+| `authentication_profile` | Optional non-secret name of an approved authentication profile. It is not a username, password, or token. |
+| `credential_environment_variable` | Optional exact environment-variable name that resolves a credential. Store only the variable name here; the credential value remains outside configuration. |
+| `allowed_extensions` | Required for a declared source. List only approved suffixes with leading dots, such as `.md`; never use it to authorize arbitrary content. |
+
+The examples above explain the schema. Do not paste them into the active array with angle-bracket placeholders still present. Use `[]` until every required value is authoritative and the selected workflow permits that source.
+
+#### Database targets
+
+`database_targets` identifies what the QA workflow is allowed to validate. It does not contain database credentials or replace `MCP/.env`. The MCP environment defines how named profiles connect; a database-target entry defines the approved database, schema, source object, and target object for the ticket.
+
+Documentation-only example:
+
+```json
+{
+  "connection_profile": "<optional-approved-mcp-profile>",
+  "db_type": "<approved-connector-type>",
+  "database": "<approved-database>",
+  "schema": "<approved-schema>",
+  "source_object": "<approved-source-object>",
+  "target_object": "<approved-target-object>"
+}
+```
+
+| Field | Meaning and completion rule |
+|---|---|
+| `connection_profile` | Optional exact MCP profile name approved for this target. Use it when an authorized mapping is needed; never put the profile's credentials here. |
+| `db_type` | Required connector type, such as an enabled PostgreSQL or Snowflake connector. It must agree with the approved MCP profile. |
+| `database` | Required exact database name containing the validation scope. |
+| `schema` | Required exact schema used by the source or target scope. |
+| `source_object` | Required authoritative source table, view, or other supported object being validated. |
+| `target_object` | Required authoritative transformed or analytics object being validated. |
+
+Leave `database_targets` as `[]` when Jira or an approved downloaded technical document will supply these values during the workflow. After those files are approved and read, the agent records the resolved targets in ticket context, the QA plan, and approval artifacts. If required values remain missing or conflict, the agent must stop and request authorized clarification rather than filling this local file with guesses.
+
+#### Workflow approval exemption
+
+`workflow_approval.approval_metadata_exempt_workflows` contains exact repository-relative paths only for workflows that an authorized local configuration allows to remain eligible while their frontmatter `approved_by` or `approved_on` is `null`.
+
+Keep the array empty for a workflow with normal non-null approval metadata. When an exemption is authorized, add only the exact selected path under `skills/workflows/`. The exemption does not approve any runtime decision and cannot bypass another checkpoint.
+
+#### Required report dependencies
+
+`required_report_dependencies` lists additional software packages that must be available for a workflow's approved report format, for example a Python library required by an existing exporter. It does not contain report inputs, attachment links, report formats, output paths, or approval decisions.
+
+Keep the array empty when the repository environment already provides everything required or when no report is needed. Adding a dependency name does not install it automatically and does not approve report generation.
+
+### 6.5 Resolution order and blockers
 
 The AI must resolve non-secret run values in this order:
 

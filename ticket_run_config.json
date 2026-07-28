@@ -170,13 +170,13 @@
     },
     {
       "id": "database_execution",
-      "required_before": "approved_read_only_sql_execution",
-      "description": "The user approves the exact read-only statements, profile mappings, order, expected results, and stop conditions."
+      "required_before": "approved_database_execution",
+      "description": "The user approves the exact proposed statements, profile mappings, order, expected results, permission classifications, and stop conditions."
     },
     {
       "id": "write_operation",
       "required_before": "each_ddl_dml_or_environment_change",
-      "description": "The user separately authorizes any DDL, DML, or environment-changing operation; read-only approval never grants it."
+      "description": "The user separately authorizes each DDL, DML, or environment-changing operation; general database execution approval never grants write authorization."
     }
   ],
   "mcp_boundaries": {
