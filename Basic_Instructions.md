@@ -8,6 +8,21 @@ This file defines the agent's role, the repository structure, permanent safety b
 
 If an exact eligible workflow cannot be identified or does not cover the request, the agent must stop, explain what is missing or ambiguous, and request clarification from an authorized user. Eligibility requires the normal approval metadata or an exact exemption in an explicitly approved local run configuration. The agent must never invent missing workflow or fallback behavior.
 
+## No Ad Hoc Files Or Alternate Execution Paths
+
+This permanent rule applies to every AI agent before preflight and throughout every ticket run.
+
+- Create a file only when the selected workflow explicitly requires that artifact, an existing approved repository module normally produces it, the user explicitly requests it, or the user separately authorizes repository development work.
+- Before creating a file, identify its documented purpose, owner, permitted path, and applicable workflow step. If these cannot be proven, do not create it.
+- Do not create temporary or ad hoc Python, PowerShell, batch, shell, SQL, text, wrapper, runner, or helper files merely to inspect the repository, preserve runtime state, work around quoting or path errors, compensate for the wrong shell, bypass a failed tool, or continue a blocked workflow step.
+- For routine read-only inspection, use an existing approved MCP tool, repository module, workspace read tool, or one direct read-only command in the actual current shell.
+- Confirm the current shell or interpreter before issuing a command. If the terminal is inside the Python REPL or another unsuitable interpreter, exit it or open the required shell instead of creating a wrapper file.
+- When an approved command or tool path fails, make at most one safe diagnostic or invocation correction that remains within that same approved path. If it still fails, mark the applicable step `blocked` and report the exact failure, tool or shell context, and last valid checkpoint.
+- Never treat a failed or unavailable required MCP operation as permission to use terminal SQL, a direct Python database connection, a command-line database client, subprocess, second process, or another execution mechanism.
+- Do not create another helper or alternate runner to remove an accidentally created file. Disclose the exact path and purpose, confirm that the current run created it and that it is not required, then use at most one direct file-system cleanup operation. If cleanup fails, stop and report it.
+- Output produced through an unauthorized helper or alternate execution path is invalid workflow evidence and must not be used to complete a checklist item.
+- Temporary files created internally by approved libraries or test frameworks are permitted only in their normal temporary locations and must not become repository, ticket, log, evidence, or report artifacts.
+
 ## Agent Role
 
 The AI agent coordinates the QA automation project. Depending on the selected client workflow, it may retrieve authorized ticket context, inspect local supporting files, prepare QA artifacts, use configured MCP tools, evaluate evidence, and generate approved reports.
@@ -20,6 +35,7 @@ The agent must:
 - keep files inside their documented ownership boundaries;
 - preserve existing user files and generated evidence;
 - stop at every approval or escalation point required by the selected workflow;
+- avoid creating any file until its documented purpose, owner, permitted path, and applicable workflow step are proven;
 - stop and request authorized clarification whenever the correct action cannot be proven; and
 - explain what information or authorization is missing instead of guessing.
 
@@ -254,6 +270,8 @@ An Agent Skill supports a checklist item but does not determine which client/pro
 - Supply the exact workflow-approved `connection_profile` in every database query MCP request. A profile selected by an earlier call or merely marked active is not sufficient execution evidence.
 - Treat failed profile resolution, binding, or connection validation as a blocker before SQL execution. Do not work around it with terminal commands, direct Python database calls, temporary helpers, or a second process.
 - Never read or print the raw `MCP/.env` during a ticket workflow. Use secret-safe profile discovery, diagnostics, and connection tools.
+- Use terminal execution only when the selected workflow or an existing approved repository operation permits it. A terminal command must not replace a required MCP operation.
+- Treat failure of an approved MCP, repository, or workflow tool path as a blocker; do not invent an alternate execution method.
 - Treat database permissions as the final execution boundary.
 - Never bypass MCP confirmations or approvals required by the selected workflow.
 
@@ -272,6 +290,7 @@ An Agent Skill supports a checklist item but does not determine which client/pro
 - Follow the input-acquisition mode and every acquisition approval checkpoint declared by the exact selected workflow; this file does not choose manual or automatic acquisition.
 - Treat only locally present and verified files as local evidence.
 - Do not modify working project code merely to complete a ticket run.
+- Do not create ad hoc helpers, temporary source files, alternate runners, wrapper commands, or cleanup scripts to bypass a failed command, wrong shell mode, MCP call, profile binding, approval boundary, or workflow step.
 
 ## Code Documentation Convention
 
