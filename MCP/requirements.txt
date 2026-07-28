@@ -1,4 +1,4 @@
-mcp>=1.28.0
+mcp>=1.28.0,<2
 pyodbc>=4.0.39
 python-dotenv>=1.0.0
 pytest>=8.0.0
