@@ -116,7 +116,17 @@ Do not place external source documents, shared logs, or final reports in `genera
 
 Before workspace initialization, the AI orchestration client must perform a read-only preflight. This is workflow enforcement performed by the AI client, not a Python preflight module.
 
-The preflight must validate the supplied ticket key; resolve an authorized Jira site URL or cloud ID; retrieve the exact issue directly; reuse that resolved Jira identifier; resolve authoritative routing metadata; select and validate the exact eligible workflow; resolve and validate required non-secret run configuration against `ticket_run_config.json`; verify report dependencies; and, when database work is declared, identify candidate database profiles through secret-safe metadata. Broad Atlassian search does not replace direct issue retrieval, and the active database profile is not an automatic selection.
+The preflight must perform this order without requiring the user to repeat repository instructions in the run prompt:
+
+1. Validate the supplied ticket key.
+2. Check whether `ticket_run_config.local.json` exists. When it exists, read it, confirm that `configuration_approval.approved_by` and `configuration_approval.approved_on` are non-null, and treat only its non-secret values as an approved candidate source. This check is mandatory even when Jira appears to contain complete context.
+3. Resolve an authorized Jira site URL or cloud ID, retrieve the exact issue directly, and reuse that resolved Jira identifier.
+4. Resolve routing using the routing-specific precedence below. The agent must not declare routing missing until it has inspected a present, approved local configuration.
+5. Construct the exact workflow filename, read its frontmatter, validate its routing metadata and eligibility, and then read the complete selected workflow.
+6. Resolve and validate the remaining required non-secret run configuration against `ticket_run_config.json`.
+7. Verify report dependencies and, when database work is declared, identify candidate database profiles through secret-safe metadata.
+
+Broad Atlassian search does not replace direct issue retrieval, and the active database profile is not an automatic selection.
 
 Authentication, configuration, connector, dependency, routing, and profile-ambiguity failures are operational blockers, not approval checkpoints. When blocked, preflight must create no path under `ticket_runs/`, `logs/`, or `output/` and must report the smallest safe corrective action.
 
@@ -124,15 +134,24 @@ Authentication, configuration, connector, dependency, routing, and profile-ambig
 
 `ticket_run_config.json` contains reusable framework defaults and field definitions only. It must never contain a selected client, project, ticket, Jira site, repository, package, authentication profile, database target, or workflow-specific approval exemption.
 
-Resolve each run value in this strict order, where a lower-precedence source may fill only a value that is still missing:
+The optional run-specific file is `ticket_run_config.local.json` at the repository root. It must be created from `ticket_run_config.example.json`, remain ignored by Git, contain only non-secret environment-specific values, and record non-null `configuration_approval.approved_by` and `configuration_approval.approved_on` before the AI treats it as approved input. A user may instead supply the same non-secret values explicitly during preflight without creating a file.
+
+For `routing.client_name`, `routing.project_type`, and `routing.workflow_variant`, use this strict precedence, where a lower-precedence source may fill only a value that is still missing:
+
+1. authoritative Jira ticket context;
+2. an explicitly supplied and approved run-specific configuration;
+3. authorized user clarification; and
+4. never guess.
+
+The selected workflow is not a routing source because it cannot be selected until routing is resolved. Its filename and frontmatter validate the resolved route after selection. Before reporting missing routing metadata, the agent must always inspect `ticket_run_config.local.json` when that file exists and is explicitly approved.
+
+After the exact workflow has been selected, resolve non-routing run values in this strict precedence:
 
 1. authoritative Jira ticket context;
 2. the selected approved workflow;
 3. an explicitly supplied and approved run-specific configuration;
 4. authorized user clarification; and
 5. never guess.
-
-The optional run-specific file is `ticket_run_config.local.json` at the repository root. It must be created from `ticket_run_config.example.json`, remain ignored by Git, contain only non-secret environment-specific values, and record non-null `configuration_approval.approved_by` and `configuration_approval.approved_on` before the AI treats it as approved input. A user may instead supply the same non-secret values explicitly during preflight without creating a file.
 
 Validate the resolved configuration against `run_configuration_schema` in `ticket_run_config.json` before workspace initialization. Report every missing field by its full path. Require `routing.client_name`, `routing.project_type`, `jira.issue_key`, `jira.retrieval_mode`, and at least one of `jira.site_url` or `jira.cloud_id`. Validate each declared input source and database target using its conditional field rules. `routing.workflow_variant` is optional. An empty `input_sources` or `database_targets` list is valid when authoritative context and the selected workflow do not require that capability.
 

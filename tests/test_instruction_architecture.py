@@ -284,10 +284,14 @@ def test_approval_metadata_exemptions_default_to_none():
 
     assert routing["approval_metadata_exempt_workflows"] == []
     assert example["workflow_approval"]["approval_metadata_exempt_workflows"] == []
-    assert example["configuration_approval"] == {
-        "approved_by": None,
-        "approved_on": None,
-    }
+    approval = example["configuration_approval"]
+    assert approval["approved_by"] is None
+    assert approval["approved_on"] is None
+    assert all(
+        key in {"approved_by", "approved_on"}
+        or (key.startswith("_comment") and isinstance(value, str))
+        for key, value in approval.items()
+    )
     assert POC_WORKFLOW_PATH.is_file()
 
     workflow = POC_WORKFLOW_PATH.read_text(encoding="utf-8")
@@ -335,6 +339,10 @@ def test_ai_preflight_precedes_workspace_initialization():
     assert instructions.index("## AI-Orchestrated Preflight") < instructions.index(
         "## Selecting A Client Workflow"
     )
+    assert instructions.index("Check whether `ticket_run_config.local.json` exists") < (
+        instructions.index("Resolve routing using the routing-specific precedence")
+    )
+    assert "must not declare routing missing until it has inspected" in instructions
     assert "global_preflight_succeeded" in workflow
     assert workflow.index("global_preflight_succeeded") < workflow.index(
         "Run the existing initializer behavior"
@@ -581,22 +589,31 @@ def test_missing_required_run_values_return_full_field_paths():
 
 # region Function: Test runtime resolution precedence
 def test_runtime_resolution_precedence_is_explicit_and_never_guesses():
-    """Keep authoritative Jira first and make unresolved conflicts blocking."""
+    """Inspect approved local routing before blocking and never route circularly."""
 
     config = _load_config()
     resolution = config["runtime_resolution"]
     instructions = (REPOSITORY_ROOT / "Basic_Instructions.md").read_text(encoding="utf-8")
 
-    assert resolution["precedence"] == [
+    assert resolution["inspect_local_configuration_before_routing_failure"] is True
+    assert resolution["routing_precedence"] == [
+        "authoritative_jira_ticket_context",
+        "explicit_approved_run_specific_configuration",
+        "authorized_user_clarification",
+        "never_guess",
+    ]
+    assert "selected_approved_workflow" not in resolution["routing_precedence"]
+    assert resolution["post_workflow_selection_precedence"] == [
         "authoritative_jira_ticket_context",
         "selected_approved_workflow",
-        "explicit_run_specific_configuration",
+        "explicit_approved_run_specific_configuration",
         "authorized_user_clarification",
         "never_guess",
     ]
     assert resolution["lower_precedence_values_may_only_fill_missing_fields"] is True
     assert resolution["missing_required_behavior"] == "block_before_workspace_initialization"
     assert "Report every missing field by its full path" in instructions
+    assert "The selected workflow is not a routing source" in instructions
 # endregion Function: Test runtime resolution precedence
 
 

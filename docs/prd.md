@@ -478,10 +478,10 @@ skills/workflows/nclh_edm_reconciliation_qaworkflow.md
 
 Workflow routing follows this exact process:
 
-1. Determine `client_name` from authoritative ticket or authorized-user context.
-2. Determine `project_type` from the Jira title or other authoritative ticket metadata.
-3. Determine `workflow_variant` only when explicitly required.
-4. Locate the workflow using the filename convention.
+1. Retrieve the authoritative Jira issue and always inspect a present `ticket_run_config.local.json` before declaring routing missing.
+2. Validate non-null local `configuration_approval.approved_by` and `configuration_approval.approved_on` before using local values.
+3. Resolve `client_name`, `project_type`, and optional `workflow_variant` from Jira first, approved local configuration only for missing values, and authorized-user clarification last.
+4. Locate the workflow using the exact filename convention. The workflow cannot supply the route used to select itself.
 5. Read and validate its YAML frontmatter.
 6. Confirm that `document_type` is exactly `qa_workflow`, `client_name` matches, `project_type` matches, and `workflow_variant` matches when required.
 7. Confirm that `approved_by` and `approved_on` are both not `null` unless the exact selected path is listed in `workflow_approval.approval_metadata_exempt_workflows` in an explicitly approved local run configuration.
@@ -501,10 +501,10 @@ The routing flow is:
 Read Basic_Instructions.md
       |
       v
-Determine client_name from authoritative context
+Retrieve Jira and inspect any present approved local configuration
       |
       v
-Determine project_type and explicit workflow_variant when required
+Resolve routing: Jira, then approved local values, then clarification
       |
       v
 Locate exact filename and validate frontmatter and approval fields
@@ -978,10 +978,10 @@ Installation, environment configuration, MCP-client registration, Atlassian auth
 ## 21. Normal Operating Procedure
 
 1. Read `Basic_Instructions.md` completely.
-2. Establish the ticket ID and determine `client_name` from authoritative ticket or authorized-user context.
-3. Determine `project_type` from the Jira title or other authoritative ticket metadata and determine `workflow_variant` only when explicitly required.
+2. Establish the ticket ID, retrieve Jira, and inspect any present `ticket_run_config.local.json` before declaring routing missing.
+3. Validate the local configuration approval, then resolve `client_name`, `project_type`, and optional `workflow_variant` from Jira first, approved local values only when missing, and authorized clarification last.
 4. Locate the exact filename under `skills/workflows/`, validate matching frontmatter, and confirm `approved_by` and `approved_on` are not `null` unless the exact path is listed in `workflow_approval.approval_metadata_exempt_workflows` in an explicitly approved local run configuration.
-5. If routing is missing, ambiguous, conflicting, or unsupported, stop and request clarification from an authorized owner.
+5. If routing remains missing, ambiguous, conflicting, or unsupported after all authorized routing sources are checked, stop and request clarification from an authorized owner.
 6. Read the selected workflow completely and state which workflow is active.
 7. Follow its ordered checklist and resolve an item's **Required Agent Skill** to `skills/agent_skills/<skill-name>/SKILL.md` only when that value is not `null`.
 8. Confirm the tools and systems required by the workflow and its skills are available.

@@ -206,7 +206,7 @@ It contains no selected demonstration ticket route and no secrets. Do not add a 
 
 ### 6.3 Optional local configuration
 
-`ticket_run_config.local.json` is optional, machine or run specific, non-secret, and Git-ignored. Create it only when Jira and the selected workflow do not provide all required non-secret values:
+`ticket_run_config.local.json` is optional, machine or run specific, non-secret, and Git-ignored. Create it only when Jira does not provide required routing values, a workflow approval-metadata exemption is authorized, or other required non-secret run values are not supplied by higher-precedence sources:
 
 ```powershell
 if (-not (Test-Path .\ticket_run_config.local.json)) {
@@ -262,7 +262,7 @@ Use these general rules:
 | Configuration area | When it is compulsory | When it may remain `null` or empty |
 |---|---|---|
 | `configuration_approval` | Both fields are compulsory whenever `ticket_run_config.local.json` is used. | The entire local file may remain absent when no local values or workflow exemption are required. |
-| `routing` | The final resolved run must have `client_name` and `project_type`. | Local values may remain `null` when Jira or the selected workflow supplies them. `workflow_variant` remains `null` when no variant applies. |
+| `routing` | The final resolved run must have `client_name` and `project_type`. | Local values may remain `null` when Jira supplies them. `workflow_variant` remains `null` when no variant applies. The selected workflow validates routing after selection and cannot supply its own selection route. |
 | `jira` | The final resolved run needs `issue_key`, `retrieval_mode`, and at least one of `site_url` or `cloud_id`. | Local fields may remain `null` when the user and authorized Atlassian integration supply them during preflight. |
 | `input_sources` | Declare entries only when approved local configuration must provide source details not already supplied authoritatively. | Keep `[]` for manual Jira discovery or when Jira and the workflow already identify the sources. |
 | `database_targets` | Declare an entry when approved local configuration must identify a database validation target. | Keep `[]` when targets will be obtained from Jira, an approved local input, the selected workflow, or when the workflow does not use databases. |
@@ -282,7 +282,7 @@ This approval covers only the non-secret local configuration values. It does not
 
 | Field | Meaning and completion rule |
 |---|---|
-| `routing.client_name` | Exact client identifier used to select the workflow. Fill it locally only when Jira and the selected workflow do not already establish it and an authorized person confirms it. |
+| `routing.client_name` | Exact client identifier used to select the workflow. Fill it locally only when Jira does not establish it and an authorized person confirms it. The workflow cannot supply the value used to select itself. |
 | `routing.project_type` | Exact project identifier used in the workflow filename and metadata, such as an approved EDM, RMS, or POC key. Leave it `null` locally when authoritative Jira metadata supplies it. |
 | `routing.workflow_variant` | Optional additional routing discriminator when more than one workflow exists for the same client and project. Leave it `null` when no variant applies. |
 
@@ -386,13 +386,14 @@ Keep the array empty when the repository environment already provides everything
 
 ### 6.5 Resolution order and blockers
 
-The AI must resolve non-secret run values in this order:
+The AI must always inspect a present `ticket_run_config.local.json` and validate its configuration approval before declaring routing missing. Routing values use this order:
 
 1. Authoritative Jira ticket context.
-2. The selected eligible workflow.
-3. Explicitly supplied and approved local configuration.
-4. Authorized user clarification.
-5. Never guess.
+2. Explicitly supplied and approved local configuration.
+3. Authorized user clarification.
+4. Never guess.
+
+The workflow is selected only after routing is resolved; its filename and frontmatter validate the route rather than supplying it. After workflow selection, non-routing values use Jira, the selected eligible workflow, approved local configuration, authorized clarification, and then never guess.
 
 A lower-priority source fills only a value that remains missing. Two conflicting non-empty values block preflight; the agent must report the exact conflict and request authorized clarification. Missing required fields must be listed by their full configuration paths.
 
@@ -758,15 +759,46 @@ The script compiles tracked Python files, runs MCP tests, performs an offline de
 - **Safe fix:** Correct the reported local setup problem, stop the manual process, and restart through the configured AI client.
 - **Stop and ask for help:** For unexplained tracebacks, repeated crashes, or any error containing sensitive material.
 
-### 12.11 Atlassian MCP cancellation, empty resources, or missing site app
+### 12.11 VS Code/Copilot tool exposure and Atlassian access
 
-- **Symptom:** Jira retrieval ends with `canceled: canceled`, the server stops, Atlassian resource discovery returns `[]`, or direct issue retrieval reports `The app is not installed on this instance`.
-- **Likely cause:** A cancellation usually means the client transport or server session stopped. An empty resource list with successful user authentication means the account identity is known but no authorized Jira site is attached to that client grant. The missing-app error means the Atlassian MCP app has not been installed for the selected site, or its site-level authorization was removed.
-- **Diagnosis:** First confirm that the same Atlassian account can open the intended Jira site directly. Then inspect fresh diagnostics from the exact Atlassian MCP server used by the current AI client. Confirm the configured endpoint is `https://mcp.atlassian.com/v1/mcp/authv2`, identify the intended site URL or cloud ID, and retry direct read-only issue retrieval. In VS Code, use **MCP: List Servers** and **View > Output**.
-- **Safe fix for cancellation:** Restart only the Atlassian server, reauthenticate if requested, and retry direct retrieval in the same chat.
-- **Safe fix for `[]` or the missing-app error:** Have an authorized site administrator complete the Atlassian OAuth consent flow when this is the site's first MCP connection or user-installed apps are restricted. During consent, explicitly select the intended Jira site and authorize Jira access. In Atlassian Administration, review **Apps > Sites > [site] > Connected apps > Settings** and **Rovo > Rovo MCP server** permissions. If the account authenticates but the stale grant still has no site, revoke the user's Atlassian MCP authorization from the Atlassian account's connected-app settings, reconnect the exact MCP entry used by the AI client, and restart or reload that client before retesting.
-- **Important:** Authentication is client-specific. Reauthenticating a different MCP entry, IDE profile, AI client, or browser account does not refresh the connection currently used by the agent. Do not copy OAuth tokens or cookies between devices or store them in repository files.
-- **Stop and ask for help:** If the user is not authorized to install or approve the app, the organization blocks the required client domain or Jira permissions, or direct retrieval still fails after a site administrator completes consent.
+#### Too many selected tools
+
+- **Symptom:** MCP tools are visible and checked in VS Code, but Copilot Agent Mode reports that required profile-management, Jira, or execution tools are unavailable.
+- **Likely cause:** A very large active tool set can cause required tools to be omitted from the agent's effective context even though the interface shows them as selected. One observed run had approximately 173 selected tools; this is an observation, not a guaranteed numeric limit.
+- **Diagnosis:** Open the tool picker and review the total selected tool set before assuming an MCP server or its implementation is broken. A checked tool is not proof that the current agent conversation can invoke it.
+- **Safe fix:** Deselect unrelated tools. Keep only the tools required by the selected workflow, including the relevant QA Automation, Atlassian, and database MCP tools. Start a fresh agent conversation after reducing the tool set so tool discovery is rebuilt.
+- **Verification:** Ask for a harmless metadata operation, such as listing secret-safe database profiles or Atlassian resources, and confirm that the previously unavailable tool is callable before resuming the workflow.
+
+#### Duplicate Atlassian MCP entries
+
+- **Symptom:** Jira authentication behaves inconsistently, one Atlassian server succeeds while another fails, or the agent invokes a different Atlassian connection from the one the user authorized.
+- **Likely cause:** A global Atlassian MCP installation and the repository's workspace-specific Atlassian MCP entry are both active. Separate entries do not necessarily share OAuth state, cached tools, or site authorization.
+- **Diagnosis:** In VS Code, run **MCP: List Servers** and identify each Atlassian entry and its configuration source. The tracked workspace entry is `atlassian-mcp-server` in `.vscode/mcp.json` and uses `https://mcp.atlassian.com/v1/mcp/authv2`. Check fresh output timestamps for the exact entry the agent is expected to use.
+- **Safe fix:** Keep one intended Atlassian entry active for the run and stop or disable the duplicate. A user may give the workspace entry a clearer non-ticket-specific local display name when their client supports aliases, but shared repository configuration must remain reusable. Complete OAuth through the same entry the agent will invoke, then start a fresh agent conversation.
+- **Verification:** Confirm that Jira retrieval and accessible-resource discovery are both executed through the intended workspace entry.
+
+#### OAuth succeeds but resources are empty or forbidden
+
+- **Symptom:** Authentication appears to complete, but resource discovery returns `[]`, Jira requests return `403 Forbidden`, direct issue retrieval reports `The app is not installed on this instance`, or authorization errors continue.
+- **Likely cause:** The account identity is authenticated, but the selected MCP entry has incomplete, stale, or wrong-site OAuth authorization. The Atlassian MCP app may also be absent from the intended site or blocked by organization policy.
+- **Diagnosis:** Confirm that the same Atlassian account can open the intended Jira site directly. Inspect fresh diagnostics from the one active Atlassian MCP entry and confirm its endpoint. Do not treat successful account identification as proof of Jira-site authorization.
+- **Safe fix:** Stop duplicate Atlassian entries. Reset or revoke the failed authorization, restart the intended workspace entry, explicitly select the intended Jira site and Jira access during OAuth, and start a fresh agent conversation. When this is the site's first MCP connection or user-installed apps are restricted, an authorized site administrator must complete or permit the consent flow. In Atlassian Administration, review **Apps > Sites > [site] > Connected apps > Settings** and **Rovo > Rovo MCP server** permissions.
+- **Verification:** Accessible-resource discovery returns the intended site and direct read-only issue retrieval succeeds.
+
+#### Exact Atlassian cloud ID
+
+- **Symptom:** Jira retrieval fails when supplied only a site name, browser URL, or assumed identifier even though authentication otherwise works.
+- **Likely cause:** The Jira MCP operation requires the exact Atlassian cloud ID for the authorized site. A site name or issue browse URL is not the cloud ID.
+- **Safe fix:** Retrieve the exact cloud ID from Atlassian's accessible-resource response and reuse that returned identifier for direct issue operations. If the accessible-resource response is empty, repair OAuth or site-app authorization first. Never guess, derive, or hardcode a cloud ID from the Jira URL, and do not place a client-specific cloud ID in shared repository files.
+- **Verification:** Direct retrieval succeeds using the verified cloud ID and exact issue key.
+
+#### Cancellation or stopped server
+
+- **Symptom:** Jira retrieval ends with `canceled: canceled` or the Atlassian server stops.
+- **Likely cause:** The client canceled the transport, authentication expired, or the server session stopped. This does not mean the Jira issue was canceled.
+- **Safe fix:** Restart only the intended Atlassian server, reauthenticate if requested, inspect fresh output, and retry the read-only retrieval in the same workflow state. Do not repeat completed ticket acquisition or create duplicate artifacts.
+
+Authentication and cached tool state are client- and server-entry-specific. Reauthenticating a different MCP entry, IDE profile, AI client, or browser account does not refresh the connection used by the agent. Never copy OAuth tokens or cookies between devices or store them in repository files. Stop and ask for help if the user cannot authorize the app, organization policy blocks the required client or Jira permissions, or direct retrieval still fails after an authorized administrator completes consent.
 
 ### 12.12 AI client returns no response
 
@@ -919,6 +951,8 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - [ ] Configure only approved local database profiles and keep secrets out of Git.
 - [ ] Create approved `ticket_run_config.local.json` only when non-secret run values are genuinely needed.
 - [ ] Restart or reload the AI client and start `mcp-execution-framework` and the configured Atlassian MCP server.
+- [ ] Keep only one intended Atlassian MCP entry active and stop or disable duplicate global or workspace entries.
+- [ ] Limit the selected agent tools to those required for the current workflow, then start a fresh agent conversation.
 - [ ] Confirm fresh local MCP startup output and discovery of 12 tools.
 - [ ] Authenticate Atlassian, confirm resource discovery lists the intended site, and verify direct read-only access to an issue on that site.
 - [ ] List profiles, explicitly select the intended profile, and test its connection without executing ticket SQL.

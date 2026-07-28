@@ -54,10 +54,17 @@
     ]
   },
   "runtime_resolution": {
-    "precedence": [
+    "inspect_local_configuration_before_routing_failure": true,
+    "routing_precedence": [
+      "authoritative_jira_ticket_context",
+      "explicit_approved_run_specific_configuration",
+      "authorized_user_clarification",
+      "never_guess"
+    ],
+    "post_workflow_selection_precedence": [
       "authoritative_jira_ticket_context",
       "selected_approved_workflow",
-      "explicit_run_specific_configuration",
+      "explicit_approved_run_specific_configuration",
       "authorized_user_clarification",
       "never_guess"
     ],

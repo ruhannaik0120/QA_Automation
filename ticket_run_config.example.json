@@ -1,23 +1,41 @@
 {
+  "_comment": "Documentation-only properties beginning with _comment explain this template and must be ignored during configuration resolution. Copy this file to the Git-ignored ticket_run_config.local.json only when approved, non-secret local values are needed. Replace operational placeholders only. Never store passwords, tokens, cookies, private keys, connection strings, signed URLs, or other secrets here.",
+  "_comment_configuration_approval": "Required whenever ticket_run_config.local.json is used. These fields approve the local configuration as an input; they do not approve ticket context, SQL, database writes, workflow outputs, or reports.",
   "configuration_approval": {
+    "_comment_approved_by": "Enter the real authorized person or identity that approved this local configuration. Leave null in the committed example and never invent an approver.",
     "approved_by": null,
+    "_comment_approved_on": "Enter the actual configuration approval date in YYYY-MM-DD format. Leave null in the committed example.",
     "approved_on": null
   },
+  "_comment_routing": "Routing selects the workflow. Fill missing values here only when authoritative Jira context does not provide them and an authorized person has confirmed them. A workflow validates the resolved route after selection; it cannot supply the route used to select itself.",
   "routing": {
+    "_comment_client_name": "Exact client identifier used in the workflow filename and YAML frontmatter, for example an approved client key. Leave null when authoritative Jira context supplies it.",
     "client_name": null,
+    "_comment_project_type": "Exact project identifier used in the workflow filename and YAML frontmatter, such as an approved edm, rms, or poc key. Leave null when authoritative Jira context supplies it.",
     "project_type": null,
+    "_comment_workflow_variant": "Optional additional routing identifier when more than one workflow exists for the same client and project. Keep null when no approved variant applies.",
     "workflow_variant": null
   },
+  "_comment_jira": "Non-secret Jira location and retrieval information used for direct issue preflight. The resolved run requires issue_key, retrieval_mode, and at least one of site_url or cloud_id.",
   "jira": {
-    "site_url": null,
+    "_comment_site_url": "Authorized Jira site root URL. Do not use a browse-ticket URL. Leave empty when cloud_id or authorized Atlassian discovery supplies the site.",
+    "site_url": "",
+    "_comment_cloud_id": "Authorized Atlassian cloud UUID for the intended site. Leave null when site_url or authorized Atlassian discovery supplies it.",
     "cloud_id": null,
+    "_comment_retrieval_mode": "Issue retrieval method. The current shared schema supports only direct_issue; broad search does not replace direct issue retrieval.",
     "retrieval_mode": "direct_issue",
+    "_comment_issue_key": "Exact Jira issue key for the run, for example ABC-123. Leave null only when it will be supplied authoritatively during preflight.",
     "issue_key": null
   },
+  "_comment_input_sources": "Optional non-secret source declarations. Keep [] when Jira or the workflow identifies inputs, when the workflow uses manual selection, or when no external input applies. Each declared object uses source_type direct_file with url and allowed_extensions, or github_package with repository, ref, package_path, and allowed_extensions. authentication_profile and credential_environment_variable may name approved credential references but must never contain credential values.",
   "input_sources": [],
+  "_comment_database_targets": "Optional approved validation scope; this does not replace MCP/.env and must never contain credentials. Keep [] when Jira, an approved downloaded document, or the selected workflow will supply targets. Each declared target requires db_type, database, schema, source_object, and target_object; connection_profile is optional and contains only an approved MCP profile name.",
   "database_targets": [],
+  "_comment_workflow_approval": "Administrative workflow eligibility only. This section does not route a ticket and does not bypass any runtime approval gate.",
   "workflow_approval": {
+    "_comment_approval_metadata_exempt_workflows": "Keep [] when workflows have normal non-null approval metadata. When explicitly authorized, list exact repository-relative workflow paths such as skills/workflows/<client>_<project>_qaworkflow.md. An entry only exempts that workflow from non-null approved_by and approved_on frontmatter.",
     "approval_metadata_exempt_workflows": []
   },
+  "_comment_required_report_dependencies": "Optional names of additional software packages required by an approved report exporter. Keep [] when no extra package is required. This does not contain report inputs, formats, paths, evidence, or approval decisions and does not install anything automatically.",
   "required_report_dependencies": []
 }
