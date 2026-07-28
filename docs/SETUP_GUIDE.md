@@ -561,11 +561,14 @@ The process should wait for stdio input. Press `Ctrl+C` to stop it before starti
 
 ## 10. Atlassian And Jira Setup
 
+Cloning this repository does not copy Atlassian authentication, OAuth grants, or site-level MCP installation state. Each user or device must configure the Atlassian MCP server in the selected AI client and authenticate with an account that can access the intended Jira site. The first successful connection to a site may also install the Atlassian MCP app through the OAuth consent flow. After that site-level installation exists, other authorized users normally need only their own OAuth consent.
+
 1. Start the configured Atlassian MCP connection through the AI client's server controls.
-2. Complete the supported OAuth flow with the account authorized for the required Jira site.
+2. Complete the supported OAuth flow with the account authorized for the required Jira site, explicitly selecting the intended site and Jira access when prompted.
 3. Return to the AI client and confirm the server is running.
-4. In the AI client's tool-enabled or agent mode, ask the agent to retrieve a placeholder ticket such as `$TicketKey` by exact key through the configured Atlassian MCP.
-5. Confirm that the returned issue belongs to the expected authorized site before proceeding.
+4. Confirm that Atlassian resource discovery returns the intended site rather than an empty list.
+5. In the AI client's tool-enabled or agent mode, ask the agent to retrieve a placeholder ticket such as `$TicketKey` by exact key through the configured Atlassian MCP.
+6. Confirm that the returned issue belongs to the expected authorized site before proceeding.
 
 For the tracked VS Code and GitHub Copilot example, use **MCP: List Servers** to start `atlassian-mcp-server`, complete the browser authentication prompt, and use Copilot Agent mode for the retrieval request.
 
@@ -755,13 +758,15 @@ The script compiles tracked Python files, runs MCP tests, performs an offline de
 - **Safe fix:** Correct the reported local setup problem, stop the manual process, and restart through the configured AI client.
 - **Stop and ask for help:** For unexplained tracebacks, repeated crashes, or any error containing sensitive material.
 
-### 12.11 Atlassian MCP stops or reports `canceled: canceled`
+### 12.11 Atlassian MCP cancellation, empty resources, or missing site app
 
-- **Symptom:** Jira retrieval ends with cancellation or the server no longer shows as running.
-- **Likely cause:** The client canceled the transport, authentication expired, or the server session stopped.
-- **Diagnosis:** Open the AI client's MCP server controls and check fresh Atlassian diagnostics. In VS Code, use **MCP: List Servers** and **View > Output**.
-- **Safe fix:** Restart the Atlassian server, reauthenticate if requested, and retry direct retrieval in the same chat.
-- **Stop and ask for help:** If the authenticated account cannot access the expected Jira site or issue.
+- **Symptom:** Jira retrieval ends with `canceled: canceled`, the server stops, Atlassian resource discovery returns `[]`, or direct issue retrieval reports `The app is not installed on this instance`.
+- **Likely cause:** A cancellation usually means the client transport or server session stopped. An empty resource list with successful user authentication means the account identity is known but no authorized Jira site is attached to that client grant. The missing-app error means the Atlassian MCP app has not been installed for the selected site, or its site-level authorization was removed.
+- **Diagnosis:** First confirm that the same Atlassian account can open the intended Jira site directly. Then inspect fresh diagnostics from the exact Atlassian MCP server used by the current AI client. Confirm the configured endpoint is `https://mcp.atlassian.com/v1/mcp/authv2`, identify the intended site URL or cloud ID, and retry direct read-only issue retrieval. In VS Code, use **MCP: List Servers** and **View > Output**.
+- **Safe fix for cancellation:** Restart only the Atlassian server, reauthenticate if requested, and retry direct retrieval in the same chat.
+- **Safe fix for `[]` or the missing-app error:** Have an authorized site administrator complete the Atlassian OAuth consent flow when this is the site's first MCP connection or user-installed apps are restricted. During consent, explicitly select the intended Jira site and authorize Jira access. In Atlassian Administration, review **Apps > Sites > [site] > Connected apps > Settings** and **Rovo > Rovo MCP server** permissions. If the account authenticates but the stale grant still has no site, revoke the user's Atlassian MCP authorization from the Atlassian account's connected-app settings, reconnect the exact MCP entry used by the AI client, and restart or reload that client before retesting.
+- **Important:** Authentication is client-specific. Reauthenticating a different MCP entry, IDE profile, AI client, or browser account does not refresh the connection currently used by the agent. Do not copy OAuth tokens or cookies between devices or store them in repository files.
+- **Stop and ask for help:** If the user is not authorized to install or approve the app, the organization blocks the required client domain or Jira permissions, or direct retrieval still fails after a site administrator completes consent.
 
 ### 12.12 AI client returns no response
 
@@ -915,7 +920,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - [ ] Create approved `ticket_run_config.local.json` only when non-secret run values are genuinely needed.
 - [ ] Restart or reload the AI client and start `mcp-execution-framework` and the configured Atlassian MCP server.
 - [ ] Confirm fresh local MCP startup output and discovery of 12 tools.
-- [ ] Authenticate Atlassian and verify direct access to the intended Jira site.
+- [ ] Authenticate Atlassian, confirm resource discovery lists the intended site, and verify direct read-only access to an issue on that site.
 - [ ] List profiles, explicitly select the intended profile, and test its connection without executing ticket SQL.
 - [ ] Run `MCP/scripts/verify.ps1` and confirm every gate passes.
 - [ ] Start the ticket only after read-only preflight can prove routing, workflow eligibility, configuration, tools, and dependencies.
