@@ -271,3 +271,64 @@ def switch_connection_profile(name: str, *, confirm: bool = False, test_connecti
             reset_query_service()
             raise
 # endregion Function: Switch connection profile
+
+
+# region Function: Bind connection profile for execution
+def bind_connection_profile_for_execution(
+    name: str,
+    *,
+    database: str | None = None,
+) -> tuple[Any, dict[str, Any]]:
+    """Resolve, test, and bind one exact profile for a query request.
+
+    The binding is repeated inside every execution request so query routing does
+    not depend on mutable state left by an earlier profile-switch tool call.
+    """
+
+    normalized_name = (name or "").strip().lower()
+    if not normalized_name:
+        raise ConfigError("connection_profile is required for query execution.")
+
+    with runtime_lock:
+        profiles = _profiles()
+        profile = profiles.get(normalized_name)
+        if profile is None:
+            available = ", ".join(sorted(profiles)) or "none"
+            raise ConfigError(
+                f"Unknown connection profile {normalized_name!r}. Available profiles: {available}."
+            )
+
+        issues = _profile_issues(profile)
+        if issues:
+            raise ConfigError(
+                f"Connection profile {normalized_name!r} is not ready: {', '.join(issues)}."
+            )
+
+        configured_database = str(profile.get("database", "")).strip()
+        requested_database = (database or "").strip()
+        if not configured_database:
+            raise ConfigError(
+                f"Connection profile {normalized_name!r} must declare a database for query execution."
+            )
+        if requested_database and requested_database.casefold() != configured_database.casefold():
+            raise ConfigError(
+                "Requested database does not match the named connection profile."
+            )
+
+        # The execution request itself names the workflow-approved profile. The
+        # existing atomic switch path validates settings, rebuilds the connector,
+        # tests connectivity, and rolls back completely on failure.
+        activation = switch_connection_profile(
+            normalized_name,
+            confirm=True,
+            test_connection=True,
+        )
+        service = get_query_service()
+        return service, {
+            "requested_profile": normalized_name,
+            "resolved_profile": activation["active_profile"],
+            "db_type": activation["db_type"],
+            "database": activation["database"],
+            "connection_status": activation.get("connection_status", "connected"),
+        }
+# endregion Function: Bind connection profile for execution

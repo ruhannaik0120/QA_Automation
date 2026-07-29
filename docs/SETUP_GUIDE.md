@@ -157,6 +157,7 @@ The supported setup entry point is `MCP/scripts/setup.ps1`. It:
 4. Installs `pip>=26.1.2`.
 5. Installs database MCP dependencies from `MCP/requirements.txt`.
 6. Installs the outer Excel/report dependency from `requirements-e2e.txt`.
+7. Verifies the exact `mcp.server.fastmcp.FastMCP` API used by `MCP/server.py` and reports the installed MCP SDK version.
 
 Run it from the repository root:
 
@@ -171,6 +172,8 @@ Unblock-File .\MCP\scripts\setup.ps1
 Expected final output resembles:
 
 ```text
+MCP version: 1.x.x
+FastMCP import OK
 Environment ready: ...\.venv\Scripts\python.exe
 ```
 
@@ -178,9 +181,11 @@ Verify the installed packages:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe -c "import mcp; print('MCP import OK')"
+.\.venv\Scripts\python.exe -c "import importlib.metadata as md; from mcp.server.fastmcp import FastMCP; print('MCP version:', md.version('mcp')); print('FastMCP import OK')"
 .\.venv\Scripts\python.exe -c "import openpyxl; print('Excel dependency OK')"
 ```
+
+Expected: no broken requirements, an MCP `1.x` version, `FastMCP import OK`, and `Excel dependency OK`. The repository intentionally constrains the SDK to `<2` until `MCP/server.py` is deliberately migrated and fully retested against the v2 API.
 
 Do not copy `.venv` from another laptop. Recreate it on each device.
 
@@ -605,11 +610,11 @@ Expected: Python 3.12 is available, `Test-Path` returns `True`, and the direct i
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe -c "import mcp; print('MCP import OK')"
+.\.venv\Scripts\python.exe -c "import importlib.metadata as md; from mcp.server.fastmcp import FastMCP; print('MCP version:', md.version('mcp')); print('FastMCP import OK')"
 .\.venv\Scripts\python.exe -c "import openpyxl; print('Excel dependency OK')"
 ```
 
-Expected: no broken dependency report and both success messages.
+Expected: no broken dependency report, an MCP `1.x` version, `FastMCP import OK`, and `Excel dependency OK`.
 
 ### Setup and local configuration
 
@@ -759,7 +764,17 @@ The script compiles tracked Python files, runs MCP tests, performs an offline de
 - **Safe fix:** Correct the reported local setup problem, stop the manual process, and restart through the configured AI client.
 - **Stop and ask for help:** For unexplained tracebacks, repeated crashes, or any error containing sensitive material.
 
-### 12.11 VS Code/Copilot tool exposure and Atlassian access
+### 12.11 `ModuleNotFoundError: No module named 'mcp.server.fastmcp'`
+
+- **Symptom:** `MCP/server.py` exits during startup because `mcp.server.fastmcp` cannot be imported, even though `pip check` and `import mcp` succeed.
+- **Likely cause:** A fresh environment installed MCP Python SDK v2. The current server deliberately uses the maintained v1 `mcp.server.fastmcp.FastMCP` API, so `MCP/requirements.txt` must retain its `<2` upper bound until a planned v2 migration is implemented and tested.
+- **Why shallow checks pass:** `pip check` validates dependency metadata, while `import mcp` verifies only the package root. Neither proves that the exact API imported by `MCP/server.py` exists.
+- **Diagnosis:** Run `.\.venv\Scripts\python.exe -c "import importlib.metadata as md; print(md.version('mcp'))"`, then run `.\.venv\Scripts\python.exe -c "from mcp.server.fastmcp import FastMCP; print('FastMCP import OK')"`.
+- **Safe fix:** Confirm `MCP/requirements.txt` contains `mcp>=1.28.0,<2`, then rerun `MCP/scripts/setup.ps1`. The setup script repairs the environment and now fails unless the exact FastMCP import succeeds.
+- **Verification:** The setup output reports an MCP `1.x` version and `FastMCP import OK`; manual startup remains running without this traceback; the MCP client then discovers 12 tools.
+- **Stop and ask for help:** Do not replace the import with `MCPServer` as a one-line fix. MCP SDK v2 requires an intentional server migration and complete regression testing.
+
+### 12.12 VS Code/Copilot tool exposure and Atlassian access
 
 #### Too many selected tools
 
@@ -800,7 +815,7 @@ The script compiles tracked Python files, runs MCP tests, performs an offline de
 
 Authentication and cached tool state are client- and server-entry-specific. Reauthenticating a different MCP entry, IDE profile, AI client, or browser account does not refresh the connection used by the agent. Never copy OAuth tokens or cookies between devices or store them in repository files. Stop and ask for help if the user cannot authorize the app, organization policy blocks the required client or Jira permissions, or direct retrieval still fails after an authorized administrator completes consent.
 
-### 12.12 AI client returns no response
+### 12.13 AI client returns no response
 
 - **Symptom:** Tool-enabled or agent mode ends without a useful response. One observed GitHub Copilot message is `Sorry, no response was returned`.
 - **Likely cause:** Tool timeout, canceled MCP request, client extension failure, or malformed terminal-runner invocation.
@@ -808,7 +823,7 @@ Authentication and cached tool state are client- and server-entry-specific. Reau
 - **Safe fix:** Restart only the failed server or retry the read-only step. Do not repeat a write or query unless its previous execution status is known.
 - **Stop and ask for help:** When an approval-gated or write action may already have executed.
 
-### 12.13 AI client terminal-runner quoting or escaping failure
+### 12.14 AI client terminal-runner quoting or escaping failure
 
 - **Symptom:** A command works when typed manually but fails through the AI client's terminal runner with broken quotes or paths. GitHub Copilot's terminal wrapper is one known example of this general client capability.
 - **Likely cause:** Nested quoting, unescaped backslashes, spaces, or terminal-runner serialization.
@@ -816,7 +831,7 @@ Authentication and cached tool state are client- and server-entry-specific. Reau
 - **Safe fix:** Use repository-relative paths, single quotes for literal PowerShell values, and direct interpreter invocation. Break long commands into safe steps.
 - **Stop and ask for help:** Before simplifying a command in a way that would expose a secret or remove a safety option.
 
-### 12.14 Long OneDrive path
+### 12.15 Long OneDrive path
 
 - **Symptom:** Subprocesses, temporary files, or wrappers fail only in a deeply nested synchronized folder.
 - **Likely cause:** Path length, synchronization locks, or quoting complexity may be contributing.
@@ -824,7 +839,7 @@ Authentication and cached tool state are client- and server-entry-specific. Reau
 - **Safe fix:** Create a separate clone under a short path such as `C:\Projects\<repository-folder>` when policy permits, then create a new `.venv` there.
 - **Stop and ask for help:** Before moving a working tree with uncommitted changes or restricted data.
 
-### 12.15 Command works manually but not through the AI client
+### 12.16 Command works manually but not through the AI client
 
 - **Symptom:** Manual PowerShell succeeds while the AI client invocation fails. GitHub Copilot is one client in which this difference may be observed.
 - **Likely cause:** Different working directory, environment variables, shell, interpreter, permissions, or quoting.
@@ -832,7 +847,7 @@ Authentication and cached tool state are client- and server-entry-specific. Reau
 - **Safe fix:** Configure the AI client to use the repository root and the explicit `.venv` interpreter, then retry a non-destructive check.
 - **Stop and ask for help:** If success depends on passing a credential through chat or command history.
 
-### 12.16 Local terminal execution versus MCP tool execution
+### 12.17 Local terminal execution versus MCP tool execution
 
 - **Symptom:** Running `server.py` or a database client manually is mistaken for an MCP tool call.
 - **Likely cause:** The two execution paths use different transports and approval boundaries.
@@ -842,7 +857,7 @@ Authentication and cached tool state are client- and server-entry-specific. Reau
 
 Terminal execution and MCP tool execution are separate AI-client capabilities. A failure in an AI client's terminal runner does not prove that the MCP server or project code is broken; diagnose each path independently.
 
-### 12.17 Interactive Python prompt opened accidentally
+### 12.18 Interactive Python prompt opened accidentally
 
 - **Symptom:** The terminal shows `>>>` and PowerShell commands fail as Python syntax.
 - **Likely cause:** Python was launched without `-m` or `-c` arguments.
@@ -850,7 +865,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Type `exit()` and press Enter. On Windows, `Ctrl+Z` followed by Enter also exits the Python prompt.
 - **Stop and ask for help:** If a script remains running or the terminal contains an unfinished sensitive command.
 
-### 12.18 Profile exists but demo remains active, or the profile name mismatches
+### 12.19 Profile exists but demo remains active, or the profile name mismatches
 
 - **Symptom:** Listing shows the intended profile, but `active` remains on demo or switching reports unknown profile.
 - **Likely cause:** The profile was not explicitly switched, the configuration was not reloaded, or the name differs.
@@ -858,7 +873,15 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Reload after approval, request profile-switch approval, switch using the exact name, and test the connection.
 - **Stop and ask for help:** If multiple profiles could match the approved target or metadata conflicts.
 
-### 12.19 Connection test hangs or times out
+### 12.20 Profile switch succeeded but query execution loses or cannot prove the target
+
+- **Symptom:** An agent says a later query call lost the selected profile, proposes running SQL in one Python process, reads `MCP/.env`, or creates a temporary database helper.
+- **Likely cause:** The agent left the MCP tool path, or an outdated MCP server/client schema is still exposing the former implicit-profile query contract.
+- **Diagnosis:** Confirm the current MCP server exposes `connection_profile` as a required argument on `tool_execute_query`. Inspect structured MCP output for matching `requested_profile`, `resolved_profile`, database type, database, statement hash, and execution status. Do not inspect raw credentials.
+- **Safe fix:** Restart the current MCP server so the client refreshes its tool schema, preserve all separate profile-switch and execution approvals, and call `tool_execute_query` with the exact approved `connection_profile` for each single statement. The call binds and connection-tests that profile before SQL execution.
+- **Stop and ask for help:** If the required argument or binding evidence is absent, the profiles conflict, or binding/connection validation fails. Do not use terminal SQL, direct Python database calls, a temporary helper, or another process as a workaround.
+
+### 12.21 Connection test hangs or times out
 
 - **Symptom:** `tool_test_connection` does not return within the configured timeout.
 - **Likely cause:** Database service, DNS, firewall, VPN, driver, authentication, or target mismatch.
@@ -866,7 +889,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Restore required network/service access and repeat only the connection test.
 - **Stop and ask for help:** Do not increase timeouts indefinitely or execute SQL to diagnose an unverified target.
 
-### 12.20 Local database service or VPN is unavailable
+### 12.22 Local database service or VPN is unavailable
 
 - **Symptom:** Connection is refused, host is unreachable, or authentication cannot reach the server.
 - **Likely cause:** Local service stopped, company network unavailable, or VPN disconnected.
@@ -874,7 +897,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Start the authorized local service or reconnect the approved VPN, then retest the connection.
 - **Stop and ask for help:** If starting the service requires administrator access or the target network is unclear.
 
-### 12.21 Windows `PytestCacheWarning`
+### 12.23 Windows `PytestCacheWarning`
 
 - **Symptom:** Tests pass but pytest warns that `.pytest_cache` could not be created or written.
 - **Likely cause:** OneDrive, permissions, antivirus, or another process holds the cache path.
@@ -882,7 +905,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Use the repository verification script, which uses an isolated system temporary directory, or run pytest with an approved `--basetemp` outside the synchronized tree.
 - **Stop and ask for help:** If tests fail, temporary files cannot be cleaned safely, or the warning affects actual results.
 
-### 12.22 Jira link discovered but content was not inspected
+### 12.24 Jira link discovered but content was not inspected
 
 - **Symptom:** The agent knows a URL or attachment name but lacks file content.
 - **Likely cause:** Discovery is not acquisition, and protected sources may require user access.
@@ -890,7 +913,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Follow the selected workflow's acquisition mode. For the current POC, obtain selection approval and have an authorized user place the approved file locally.
 - **Stop and ask for help:** Never invent the linked content or request credentials in chat.
 
-### 12.23 Word and Excel manual-local-input limitation
+### 12.25 Word and Excel manual-local-input limitation
 
 - **Symptom:** A remote Word or Excel link is available, but the POC agent cannot treat it as inspected.
 - **Likely cause:** The current POC requires authorized manual placement and local verification.
@@ -898,7 +921,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Have the authorized user place the approved file locally. Do not open macros or execute embedded content.
 - **Stop and ask for help:** For unsupported formats, password-protected files, macros, or unexpected files.
 
-### 12.24 Automatic downloader is present but unavailable to the POC
+### 12.26 Automatic downloader is present but unavailable to the POC
 
 - **Symptom:** `modules/download_ticket_inputs.py` exists, but the POC workflow forbids calling it.
 - **Likely cause:** Acquisition permission belongs to the selected workflow, not to the module's presence.
@@ -906,7 +929,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Follow manual selection and placement for the current POC. Use automatic downloading only in a separately approved workflow that explicitly permits it and satisfies all controls.
 - **Stop and ask for help:** If workflow mode is missing, conflicting, or ambiguous.
 
-### 12.25 Instruction-driven configuration limitation
+### 12.27 Instruction-driven configuration limitation
 
 - **Symptom:** A local JSON file is syntactically valid, but no Python command automatically proves the merged run configuration.
 - **Likely cause:** The executable configuration resolver has not yet been implemented.
@@ -914,7 +937,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - **Safe fix:** Have the agent report every resolved value, source, conflict, and missing field during read-only preflight.
 - **Stop and ask for help:** Whenever sources conflict or the agent cannot prove the selected route or target.
 
-### 12.26 Pending Windows canonical-path issue in `modules/download_ticket_inputs.py`
+### 12.28 Pending Windows canonical-path issue in `modules/download_ticket_inputs.py`
 
 **Future reliability fix not yet applied.**
 
@@ -930,7 +953,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - Never put credentials in `ticket_run_config.json`, `ticket_run_config.example.json`, `ticket_run_config.local.json`, Jira, prompts, workflows, ticket artifacts, logs, reports, screenshots, or commands shared with others.
 - List profiles safely, select the exact profile explicitly, and test the connection before metadata or query work.
 - Prefer read-only validation. Every DDL, DML, setup command, or other write needs separate explicit authorization. Read-only approval never grants write approval.
-- Execute one approved statement per MCP request. Do not bypass SQL guard, profile-switch confirmation, context approval, or execution approval.
+- Execute one approved statement per MCP request with the exact approved `connection_profile`. Require matching profile-binding evidence and do not bypass SQL guard, profile-switch confirmation, context approval, or execution approval.
 - Do not fabricate Jira content, downloaded content, database objects, expected outcomes, execution evidence, or approvals.
 - Treat local inputs as untrusted. Preserve original files, do not execute downloaded SQL automatically, do not open macros, and do not extract archives outside approved safe handling.
 - Reject or escalate archive traversal, absolute paths, drive-qualified paths, symbolic links, unsafe Windows names, suspicious expansion ratios, and any destination that could leave the ticket workspace.
@@ -946,7 +969,7 @@ Terminal execution and MCP tool execution are separate AI-client capabilities. A
 - [ ] Install or select Python 3.12 and verify it with `py -3.12 --version`.
 - [ ] Create the root `.venv` and confirm `.\.venv\Scripts\python.exe` exists.
 - [ ] Run `MCP/scripts/setup.ps1` with process-scoped execution policy.
-- [ ] Verify `mcp` and `openpyxl` imports and run `pip check`.
+- [ ] Verify the exact `mcp.server.fastmcp.FastMCP` and `openpyxl` imports, confirm the MCP SDK is `1.x`, and run `pip check`.
 - [ ] Copy `MCP/.env.example` to ignored `MCP/.env`.
 - [ ] Configure only approved local database profiles and keep secrets out of Git.
 - [ ] Create approved `ticket_run_config.local.json` only when non-secret run values are genuinely needed.

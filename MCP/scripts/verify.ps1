@@ -41,6 +41,22 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Compilation failed." }
     #endregion Tracked Python compilation
 
+    #region MCP SDK compatibility verification
+    # Check the exact API used by server.py before running tests that may not
+    # import the server entry point directly.
+    $FastMCPCompatibilityCheck = @'
+import importlib.metadata as metadata
+from mcp.server.fastmcp import FastMCP
+
+print('MCP version:', metadata.version('mcp'))
+print('FastMCP import OK')
+'@
+    & $Python -c $FastMCPCompatibilityCheck
+    if ($LASTEXITCODE -ne 0) {
+        throw "FastMCP compatibility verification failed. Run MCP\scripts\setup.ps1."
+    }
+    #endregion MCP SDK compatibility verification
+
     #region Database MCP tests and offline smoke test
     Push-Location $ProjectRoot
     try {

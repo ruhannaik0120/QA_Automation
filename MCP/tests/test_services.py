@@ -110,7 +110,11 @@ def test_execute_select_query_delegates_to_connector(monkeypatch):
     connector = FakeConnector()
     service = QueryService(connector)
 
-    response = service.execute_select_query(sql="SELECT name FROM sys.databases", environment="ignored").to_dict()
+    response = service.execute_select_query(
+        connection_profile="sqlserver-sandbox",
+        sql="SELECT name FROM sys.databases",
+        environment="ignored",
+    ).to_dict()
 
     assert response["success"] is True
     assert response["tool"] == "execute_select_query"
@@ -249,7 +253,11 @@ def test_execute_query_executes_approved_write_statement(monkeypatch):
     connector = FakeConnector()
     service = QueryService(connector)
 
-    response = service.execute_query(sql="DELETE FROM items", environment="ignored").to_dict()
+    response = service.execute_query(
+        connection_profile="sqlserver-sandbox",
+        sql="DELETE FROM items",
+        environment="ignored",
+    ).to_dict()
 
     assert response["success"] is True
     assert response["tool"] == "execute_query"
@@ -266,7 +274,11 @@ def test_execute_query_falls_back_from_whitespace_sql(monkeypatch):
     connector = FakeConnector()
     service = QueryService(connector)
 
-    response = service.execute_query(sql="   ", query="  SELECT 1  ").to_dict()
+    response = service.execute_query(
+        connection_profile="sqlserver-sandbox",
+        sql="   ",
+        query="  SELECT 1  ",
+    ).to_dict()
 
     assert response["success"] is True
     assert response["query"] == "SELECT 1"
@@ -283,7 +295,11 @@ def test_execute_query_rejects_blank_statements(monkeypatch):
         connector = FakeConnector()
         service = QueryService(connector)
 
-        response = service.execute_query(sql=sql, query=query).to_dict()
+        response = service.execute_query(
+            connection_profile="sqlserver-sandbox",
+            sql=sql,
+            query=query,
+        ).to_dict()
 
         assert response["success"] is False
         assert response["error"]["code"] == ErrorCode.QUERY_BLOCKED
@@ -299,7 +315,11 @@ def test_execute_query_rejects_conflicting_sql_arguments(monkeypatch):
     connector = FakeConnector()
     service = QueryService(connector)
 
-    response = service.execute_query(sql="SELECT 1", query="DELETE FROM items").to_dict()
+    response = service.execute_query(
+        connection_profile="sqlserver-sandbox",
+        sql="SELECT 1",
+        query="DELETE FROM items",
+    ).to_dict()
 
     assert response["success"] is False
     assert response["error"]["code"] == ErrorCode.CONFIG_INVALID
@@ -315,7 +335,11 @@ def test_execute_query_accepts_identical_normalized_statements(monkeypatch):
     connector = FakeConnector()
     service = QueryService(connector)
 
-    response = service.execute_query(sql="  SELECT 1  ", query="\nSELECT 1\t").to_dict()
+    response = service.execute_query(
+        connection_profile="sqlserver-sandbox",
+        sql="  SELECT 1  ",
+        query="\nSELECT 1\t",
+    ).to_dict()
 
     assert response["success"] is True
     assert response["query"] == "SELECT 1"
@@ -330,7 +354,11 @@ def test_execute_query_rejects_database_outside_active_profile(monkeypatch):
     connector = FakeConnector()
     service = QueryService(connector)
 
-    response = service.execute_query(sql="SELECT 1", database="another_database").to_dict()
+    response = service.execute_query(
+        connection_profile="sqlserver-sandbox",
+        sql="SELECT 1",
+        database="another_database",
+    ).to_dict()
 
     assert response["success"] is False
     assert response["error"]["code"] == ErrorCode.CONFIG_INVALID
@@ -346,7 +374,10 @@ def test_deprecated_alias_uses_same_generic_execution_path(monkeypatch):
     connector = FakeConnector()
     service = QueryService(connector)
 
-    response = service.execute_select_query(sql="UPDATE items SET active = 1").to_dict()
+    response = service.execute_select_query(
+        connection_profile="sqlserver-sandbox",
+        sql="UPDATE items SET active = 1",
+    ).to_dict()
 
     assert response["success"] is True
     assert response["tool"] == "execute_select_query"
@@ -361,7 +392,11 @@ def test_request_row_limit_cannot_exceed_configured_cap(monkeypatch):
     connector = FakeConnector()
     service = QueryService(connector)
 
-    response = service.execute_select_query(sql="SELECT name FROM items", max_rows=10_000).to_dict()
+    response = service.execute_select_query(
+        connection_profile="sqlserver-sandbox",
+        sql="SELECT name FROM items",
+        max_rows=10_000,
+    ).to_dict()
 
     assert response["success"] is True
     assert response["metadata"]["row_limit"] == 25
@@ -376,7 +411,11 @@ def test_non_positive_row_limit_is_rejected(monkeypatch):
     _configure_settings(monkeypatch)
     service = QueryService(FakeConnector())
 
-    response = service.execute_select_query(sql="SELECT 1", max_rows=0).to_dict()
+    response = service.execute_select_query(
+        connection_profile="sqlserver-sandbox",
+        sql="SELECT 1",
+        max_rows=0,
+    ).to_dict()
 
     assert response["success"] is False
     assert response["error"]["code"] == ErrorCode.CONFIG_INVALID
@@ -412,9 +451,48 @@ def test_connector_errors_redact_configured_password(monkeypatch):
         # endregion Function: Execute query
     # endregion Class: FailingConnector
 
-    response = QueryService(FailingConnector()).execute_query(sql="SELECT 1").to_dict()
+    response = QueryService(FailingConnector()).execute_query(
+        connection_profile="sqlserver-sandbox",
+        sql="SELECT 1",
+    ).to_dict()
 
     assert response["success"] is False
     assert "dev_pass" not in str(response)
     assert "[REDACTED]" in response["error"]["detail"]
 # endregion Function: Test connector errors redact configured password
+
+
+# region Function: Test execute query requires connection profile
+def test_execute_query_requires_connection_profile(monkeypatch):
+    """Block SQL before connector delegation when no exact profile is supplied."""
+
+    _configure_settings(monkeypatch)
+    connector = FakeConnector()
+
+    response = QueryService(connector).execute_query(sql="SELECT 1").to_dict()
+
+    assert response["success"] is False
+    assert response["error"]["code"] == ErrorCode.CONFIG_INVALID
+    assert "connection_profile is required" in response["error"]["detail"]
+    assert response["execution_status"] == "blocked"
+    assert connector.calls == []
+# endregion Function: Test execute query requires connection profile
+
+
+# region Function: Test execute query rejects mismatched bound profile
+def test_execute_query_rejects_mismatched_bound_profile(monkeypatch):
+    """Block SQL when the service connector is not bound to the requested profile."""
+
+    _configure_settings(monkeypatch)
+    connector = FakeConnector()
+
+    response = QueryService(connector).execute_query(
+        connection_profile="another-profile",
+        sql="SELECT 1",
+    ).to_dict()
+
+    assert response["success"] is False
+    assert response["error"]["code"] == ErrorCode.CONFIG_INVALID
+    assert "does not match" in response["error"]["detail"]
+    assert connector.calls == []
+# endregion Function: Test execute query rejects mismatched bound profile

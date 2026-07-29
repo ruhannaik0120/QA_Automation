@@ -189,6 +189,7 @@ def tool_suggest_columns(
 # region Function: Tool execute query
 @mcp.tool()
 def tool_execute_query(
+    connection_profile: str,
     sql: str = "",
     query: str = "",
     database: str = "",
@@ -197,16 +198,25 @@ def tool_execute_query(
     timeout_seconds: int | None = None,
     max_rows: int | None = None,
 ) -> str:
-    """Execute approved SQL against the active profile's configured database.
+    """Execute approved SQL through one explicitly named connection profile.
 
     The compatibility schema argument is returned as request context only; SQL
-    must qualify its own schema. Targeting another database requires an approved
-    profile switch.
+    must qualify its own schema. The profile is resolved, connection-tested, and
+    rebound inside this request; prior active-profile state is never sufficient.
     """
 
     # The legacy select-named tool below remains available for existing clients.
     return json.dumps(
-        execute_query(sql, query, database, schema, environment, timeout_seconds, max_rows),
+        execute_query(
+            connection_profile=connection_profile,
+            sql=sql,
+            query=query,
+            database=database,
+            schema=schema,
+            environment=environment,
+            timeout_seconds=timeout_seconds,
+            max_rows=max_rows,
+        ),
         indent=2,
         default=str,
     )
@@ -216,6 +226,7 @@ def tool_execute_query(
 # region Function: Tool execute select query
 @mcp.tool()
 def tool_execute_select_query(
+    connection_profile: str,
     sql: str = "",
     query: str = "",
     database: str = "",
@@ -224,10 +235,19 @@ def tool_execute_select_query(
     timeout_seconds: int | None = None,
     max_rows: int | None = None,
 ) -> str:
-    """Deprecated compatibility alias for tool_execute_query. Executes an approved SQL command/query using the active database profile."""
+    """Deprecated compatibility alias requiring the same explicit profile binding."""
 
     return json.dumps(
-        execute_select_query(sql, query, database, schema, environment, timeout_seconds, max_rows),
+        execute_select_query(
+            connection_profile=connection_profile,
+            sql=sql,
+            query=query,
+            database=database,
+            schema=schema,
+            environment=environment,
+            timeout_seconds=timeout_seconds,
+            max_rows=max_rows,
+        ),
         indent=2,
         default=str,
     )

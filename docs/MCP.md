@@ -276,7 +276,7 @@ The server exposes these MCP tools:
 | `tool_list_tables` | Lists tables for a database and optional schema. |
 | `tool_describe_table` | Returns column metadata for a table. |
 | `tool_suggest_columns` | Suggests real column names similar to a missing/incorrect column. |
-| `tool_execute_query` | Executes one approved SQL statement against the active profile. |
+| `tool_execute_query` | Binds and connection-tests the exact named profile, then executes one approved SQL statement. |
 | `tool_execute_select_query` | Deprecated compatibility alias for `tool_execute_query`. |
 
 The most important operational tools are:
@@ -285,7 +285,7 @@ The most important operational tools are:
 2. `tool_switch_connection_profile`
 3. `tool_execute_query`
 
-In a normal QA workflow, the AI should list profiles, ask for approval to switch to the required database, then execute only approved SQL.
+In a normal QA workflow, the AI should list profiles, ask for approval to switch to the required database, then execute only approved SQL while supplying that exact approved profile in every query call.
 
 ## 7. Safety Model
 
@@ -607,17 +607,25 @@ Use metadata before writing SQL if column names are unknown.
 
 Call:
 
-```text
-tool_execute_query
+```json
+{
+  "connection_profile": "postgres-local",
+  "database": "approved_database",
+  "sql": "SELECT 1"
+}
 ```
 
 Important rules:
 
+- `connection_profile` is required and must be the exact approved profile name
+- the execution request resolves, applies, connection-tests, and binds that profile before SQL reaches a connector
+- do not rely on an earlier profile switch, the currently active profile, chat memory, or process-local state as execution evidence
 - send one statement per call
 - do not include comments
 - do not send a file containing multiple SQL statements
 - qualify schema/database names when needed
-- switch profiles before targeting a different database system
+- obtain every required profile-switch and execution approval before targeting a different database system
+- if profile resolution, binding, target validation, or connection testing fails, stop; do not use a shell, direct Python database call, temporary helper, or another process as a workaround
 
 ### Step 5: Use structured results
 
@@ -626,7 +634,9 @@ The tool response includes:
 - success/failure
 - request ID
 - execution time
-- active profile metadata
+- `requested_profile` and `resolved_profile`
+- database type, database, and schema/role when applicable
+- `statement_hash`, `statement_classification`, and `execution_status`
 - columns
 - rows
 - structured error if failed
@@ -1211,5 +1221,5 @@ Complete installation and MCP-client registration through [SETUP_GUIDE.md](SETUP
 2. Fix any `ready=false` profile issues.
 3. Switch profile with `confirm=true` after approval.
 4. Use metadata tools to inspect database structure.
-5. Execute one approved SQL statement per call with `tool_execute_query`.
+5. Execute one approved SQL statement per call with `tool_execute_query`, supplying the exact approved `connection_profile` every time.
 6. Use returned structured results for QA validation.

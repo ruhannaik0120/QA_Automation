@@ -58,5 +58,22 @@ if ($LASTEXITCODE -ne 0) { throw "Failed to install the minimum secure pip versi
 if ($LASTEXITCODE -ne 0) { throw "Failed to install database MCP dependencies." }
 & $Python -m pip install -r (Join-Path $WorkspaceRoot "requirements-e2e.txt")
 if ($LASTEXITCODE -ne 0) { throw "Failed to install E2E helper dependencies." }
+
+#region MCP SDK compatibility verification
+# Verify the exact v1 API imported by server.py so an incompatible major SDK
+# cannot leave setup reporting a usable environment.
+$FastMCPCompatibilityCheck = @'
+import importlib.metadata as metadata
+from mcp.server.fastmcp import FastMCP
+
+print('MCP version:', metadata.version('mcp'))
+print('FastMCP import OK')
+'@
+& $Python -c $FastMCPCompatibilityCheck
+if ($LASTEXITCODE -ne 0) {
+    throw "The installed MCP SDK is incompatible with MCP\server.py."
+}
+#endregion MCP SDK compatibility verification
+
 Write-Host "Environment ready: $Python"
 #endregion Dependency installation
